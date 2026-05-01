@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1F4E79">
+<title>船舶管理主控台</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: #f5f7fa;
+  color: #222; font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.app { max-width: 760px; margin: 0 auto; padding-bottom: 30px; }
+
+header {
+  background: linear-gradient(135deg, #1F4E79, #2E5F8B);
+  color: white;
+  padding: 14px 16px 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+header h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: 0.3px; }
+header .meta { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+
+/* 頂部導航 */
+nav.tabs {
+  position: sticky; top: 64px; z-index: 99;
+  background: white;
+  display: flex;
+  border-bottom: 2px solid #1F4E79;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+nav.tabs::-webkit-scrollbar { display: none; }
+nav.tabs button {
+  flex: 1;
+  min-width: 80px;
+  border: 0; background: transparent;
+  padding: 10px 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px;
+  border-bottom: 3px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+nav.tabs button:active { background: #f0f4f8; }
+nav.tabs button.active {
+  color: #1F4E79; font-weight: 700;
+  border-bottom-color: #1F4E79;
+  background: linear-gradient(180deg, #fff, #eef4fa);
+}
+nav.tabs button .icon { font-size: 22px; }
+nav.tabs button .label { font-size: 12px; }
+
+/* 通用區塊 */
+.section { padding: 12px; }
+.section.hidden { display: none; }
+
+/* 搜尋列 */
+.search-bar {
+  position: sticky; top: 124px; z-index: 50;
+  padding: 10px 12px;
+  background: rgba(245, 247, 250, 0.95);
+  backdrop-filter: blur(8px);
+}
+.search-bar input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #d0d7de;
+  border-radius: 10px;
+  font-size: 15px;
+  background: white;
+  -webkit-appearance: none;
+}
+.search-bar input:focus { outline: none; border-color: #1F4E79; box-shadow: 0 0 0 2px rgba(31,78,121,0.1); }
+
+/* 篩選 chips */
+.chips {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 0 12px 8px;
+}
+.chips-row { display: flex; gap: 6px; align-items: center; padding: 0 12px 4px; }
+.chips-label { font-size: 11px; color: #888; font-weight: 600; min-width: 36px; }
+.chip {
+  padding: 6px 12px;
+  background: #eef2f6;
+  border: 1.5px solid #d0d7de;
+  border-radius: 16px;
+  font-size: 12px;
+  user-select: none; cursor: pointer;
+  transition: all 0.15s;
+}
+.chip:active { transform: scale(0.96); }
+.chip.active { background: #1F4E79; color: white; border-color: #1F4E79; }
+.chip.s1 { color: #c00000; }
+.chip.s1.active { background: #c00000; border-color: #c00000; color: white; }
+.chip.s2 { color: #c46500; }
+.chip.s2.active { background: #c46500; border-color: #c46500; color: white; }
+.chip.dd-active { color: #b65500; }
+.chip.dd-active.active { background: #ff8c00; border-color: #ff8c00; color: white; }
+.chip.dd-future { color: #1F4E79; }
+.chip.dd-future.active { background: #1F4E79; border-color: #1F4E79; color: white; }
+.chip.dd-past { color: #1b5e20; }
+.chip.dd-past.active { background: #2e7d32; border-color: #2e7d32; color: white; }
+
+/* KPI 卡片 */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px; padding: 12px;
+}
+.kpi {
+  background: white;
+  padding: 16px 14px;
+  border-radius: 12px;
+  border: 1px solid #e6eaee;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  position: relative;
+}
+.kpi .label { font-size: 13px; color: #555; font-weight: 500; }
+.kpi .value { font-size: 32px; font-weight: 700; color: #1F4E79; margin-top: 6px; line-height: 1; }
+.kpi.clickable {
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.15s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.kpi.clickable:hover { box-shadow: 0 4px 12px rgba(31,78,121,0.15); transform: translateY(-1px); }
+.kpi.clickable:active { transform: scale(0.97); }
+.kpi-arrow {
+  position: absolute;
+  top: 8px; right: 10px;
+  font-size: 14px; color: #b0b8c0;
+  font-weight: 600;
+  opacity: 0.6;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.kpi.clickable:hover .kpi-arrow { opacity: 1; transform: translateX(2px); }
+
+/* === 10 個 KPI 顏色主題 === */
+.kpi.theme-blue { background: linear-gradient(135deg, #fbfdff, #e3f2fd); border-color: #bbdefb; border-left: 4px solid #1565C0; }
+.kpi.theme-blue .value, .kpi.theme-blue .kpi-arrow { color: #1565C0; }
+
+.kpi.theme-teal { background: linear-gradient(135deg, #fafefd, #e0f2f1); border-color: #b2dfdb; border-left: 4px solid #00695C; }
+.kpi.theme-teal .value, .kpi.theme-teal .kpi-arrow { color: #00695C; }
+
+.kpi.theme-red { background: linear-gradient(135deg, #fffafa, #ffebee); border-color: #ffcdd2; border-left: 4px solid #C62828; }
+.kpi.theme-red .value, .kpi.theme-red .kpi-arrow { color: #C62828; }
+
+.kpi.theme-orange { background: linear-gradient(135deg, #fffcfa, #fff3e0); border-color: #ffe0b2; border-left: 4px solid #EF6C00; }
+.kpi.theme-orange .value, .kpi.theme-orange .kpi-arrow { color: #EF6C00; }
+
+.kpi.theme-purple { background: linear-gradient(135deg, #fdfaff, #f3e5f5); border-color: #e1bee7; border-left: 4px solid #6A1B9A; }
+.kpi.theme-purple .value, .kpi.theme-purple .kpi-arrow { color: #6A1B9A; }
+
+.kpi.theme-indigo { background: linear-gradient(135deg, #fafbff, #e8eaf6); border-color: #c5cae9; border-left: 4px solid #283593; }
+.kpi.theme-indigo .value, .kpi.theme-indigo .kpi-arrow { color: #283593; }
+
+.kpi.theme-gold { background: linear-gradient(135deg, #fffefa, #fff8e1); border-color: #ffe082; border-left: 4px solid #F9A825; }
+.kpi.theme-gold .value, .kpi.theme-gold .kpi-arrow { color: #F57F17; }
+
+.kpi.theme-brown { background: linear-gradient(135deg, #fdfbfa, #efebe9); border-color: #d7ccc8; border-left: 4px solid #6D4C41; }
+.kpi.theme-brown .value, .kpi.theme-brown .kpi-arrow { color: #6D4C41; }
+
+.kpi.theme-crimson { background: linear-gradient(135deg, #fffafc, #fce4ec); border-color: #f8bbd0; border-left: 4px solid #AD1457; }
+.kpi.theme-crimson .value, .kpi.theme-crimson .kpi-arrow { color: #AD1457; }
+
+.kpi.theme-cyan { background: linear-gradient(135deg, #fafdfe, #e0f7fa); border-color: #b2ebf2; border-left: 4px solid #00838F; }
+.kpi.theme-cyan .value, .kpi.theme-cyan .kpi-arrow { color: #00838F; }
+
+/* 0 值時降權重（critical 旗標 + value=0）*/
+.kpi.kpi-zero {
+  background: #fafafa !important;
+  border-color: #eaeaea !important;
+  border-left: 4px solid #d0d0d0 !important;
+  box-shadow: none;
+}
+.kpi.kpi-zero .label { color: #aaa; }
+.kpi.kpi-zero .value { color: #c8c8c8 !important; }
+.kpi.kpi-zero .kpi-arrow { color: #d0d0d0 !important; opacity: 0.4; }
+.kpi.kpi-zero::after {
+  content: "✓";
+  position: absolute;
+  bottom: 6px; right: 10px;
+  color: #4caf50;
+  font-size: 12px; font-weight: 700;
+  opacity: 0.5;
+}
+.kpi.danger { background: linear-gradient(135deg, #fff, #ffebee); border-color: #ffcdd2; }
+.kpi.danger .value { color: #c00000; }
+.kpi.warn { background: linear-gradient(135deg, #fff, #fff8e1); border-color: #ffe0b2; }
+.kpi.warn .value { color: #c46500; }
+.kpi.success { background: linear-gradient(135deg, #fff, #e8f5e9); border-color: #c8e6c9; }
+.kpi.success .value { color: #2e7d32; }
+
+.section-title {
+  margin: 8px 12px;
+  font-size: 13px; font-weight: 600; color: #555;
+  letter-spacing: 0.5px;
+}
+
+/* 卡片 */
+.card {
+  background: white;
+  border-radius: 12px;
+  margin: 0 12px 10px;
+  border: 1px solid #e6eaee;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.card.s1 { border-left: 5px solid #c00000; }
+.card.s2 { border-left: 5px solid #ff9800; }
+.card.dd-active { border-left: 5px solid #ff9800; }
+.card.dd-future-soon { border-left: 5px solid #c00000; }
+.card.dd-future { border-left: 5px solid #1F4E79; }
+.card-head {
+  padding: 14px 16px; cursor: pointer;
+}
+.card-head:active { background: #f0f4f8; }
+.card-tags {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
+}
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px; font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+.t-l { background: #d6e9f8; color: #0d47a1; }
+.t-o { background: #fff3cc; color: #8d6e00; }
+.t-g { background: #d4ecd6; color: #1b5e20; }
+.t-s1 { background: #c00000; color: white; }
+.t-s2 { background: #ff8c00; color: white; }
+.t-s3 { background: #d4d4d4; color: #444; }
+.t-cat { background: #ead4f0; color: #4a148c; }
+.t-status-pending { background: #ffd6db; color: #b00000; }
+.t-status-active { background: #ffe1b8; color: #b65500; }
+.t-status-closed { background: #c8e6c9; color: #1b5e20; }
+.t-dd-active { background: #ff9800; color: white; }
+.t-dd-future { background: #1F4E79; color: white; }
+.t-dd-future-soon { background: #c00000; color: white; }
+.t-dd-past { background: #2e7d32; color: white; }
+.t-dd-none { background: #e6e6e6; color: #888; }
+.t-date { background: #e0e6ed; color: #333; font-family: monospace; font-weight: 500; }
+.t-code { background: #d8dde3; color: #1a1a1a; font-family: monospace; font-weight: 700; }
+.card-title {
+  font-size: 16px; color: #1a1a1a; font-weight: 600;
+  word-break: break-word; line-height: 1.5;
+}
+.card-body {
+  display: none;
+  padding: 0 16px 16px;
+  border-top: 1px solid #f0f3f6;
+  margin-top: 8px;
+}
+.card.expanded .card-body { display: block; }
+.card.expanded .card-head { background: #f5f9fc; }
+.field { margin-top: 12px; }
+.field .label {
+  font-size: 12px; font-weight: 700; color: #1F4E79;
+  letter-spacing: 0.3px;
+  margin-bottom: 5px;
+}
+.field .value {
+  font-size: 14px; color: #1a1a1a;
+  white-space: pre-wrap; word-break: break-word; line-height: 1.7;
+  background: #f7f9fc;
+  padding: 10px 12px; border-radius: 6px;
+  border-left: 3px solid #d0d7de;
+}
+.field .value code {
+  font-family: monospace; font-size: 12px;
+  background: white; padding: 2px 5px; border-radius: 3px; border: 1px solid #e0e4e8;
+}
+
+/* === 週報專用樣式 === */
+.weekly-hero {
+  margin: 0 12px 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #1F4E79, #2E5F8B);
+  color: white;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(31,78,121,0.2);
+}
+.hero-week { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+.hero-range { font-size: 13px; margin-top: 4px; opacity: 0.9; font-family: monospace; }
+.hero-active { font-size: 12px; margin-top: 6px; opacity: 0.85; }
+
+.weekly-kpi {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+.wk-kpi {
+  background: white;
+  border: 1px solid #e6eaee;
+  border-radius: 8px;
+  padding: 10px 4px;
+  text-align: center;
+}
+.wk-kpi-v { font-size: 22px; font-weight: 700; color: #1F4E79; line-height: 1; }
+.wk-kpi-l { font-size: 11px; color: #666; margin-top: 4px; }
+.wk-kpi.danger { background: linear-gradient(135deg,#fff,#ffebee); border-color: #ffcdd2; }
+.wk-kpi.danger .wk-kpi-v { color: #c00000; }
+.wk-kpi.warn { background: linear-gradient(135deg,#fff,#fff8e1); border-color: #ffe0b2; }
+.wk-kpi.warn .wk-kpi-v { color: #c46500; }
+
+.wk-meta {
+  font-size: 11px; color: #888;
+  margin-top: 6px;
+}
+
+.wk-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.wk-item {
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  line-height: 1.6;
+  background: #f7f9fc;
+  border-left: 3px solid #d0d7de;
+  word-break: break-word;
+}
+.wk-item b { color: #1F4E79; font-weight: 600; }
+.wk-item.wk-dock { background: #fff8e1; border-left-color: #ff9800; }
+.wk-item.wk-out { background: #e8f5e9; border-left-color: #2e7d32; }
+.wk-item.wk-in { background: #e3f2fd; border-left-color: #1565C0; }
+.wk-item.wk-overdue { background: #ffebee; border-left-color: #c00000; }
+.wk-item.wk-overdue b { color: #c00000; }
+.wk-item.wk-class30 { background: #fff3e0; border-left-color: #ef6c00; }
+.wk-item.wk-event { background: #fff5f5; border-left-color: #d32f2f; }
+.wk-item.wk-closed { background: #e8f5e9; border-left-color: #2e7d32; opacity: 0.85; }
+.wk-item.wk-pay { background: #fff8e1; border-left-color: #f9a825; }
+.wk-item.wk-summaries { padding: 0; background: white; border-left-color: #6a1b9a; }
+.wk-item.wk-summaries summary { padding: 8px 10px; cursor: pointer; font-size: 13px; }
+.wk-item.wk-summaries summary b { color: #6a1b9a; }
+.wk-sub {
+  font-size: 12px; color: #444;
+  padding: 6px 10px 6px 24px;
+  border-top: 1px dashed #e6eaee;
+  line-height: 1.6;
+}
+
+/* Class Items 速覽（卡片標題下）*/
+.ci-head-summary {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cih-tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 14px;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.cih-overdue { background: #ffebee; color: #c00000; border: 1px solid #ffc4c4; }
+.cih-30 { background: #fff3e0; color: #b65500; border: 1px solid #ffd591; }
+.cih-90 { background: #fff8e1; color: #8d6e00; border: 1px solid #ffe0b2; }
+.cih-track { background: #e3eef9; color: #0d47a1; border: 1px solid #c2dafd; }
+
+/* Class Items 完整區塊 */
+.ci-section {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px dashed #d0d7de;
+}
+.ci-section .ci-title {
+  font-size: 13px; font-weight: 700; color: #c00000;
+  margin-bottom: 8px;
+}
+.ci-list { display: flex; flex-direction: column; gap: 8px; }
+.ci-item {
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.ci-item.overdue { background: #fff5f5; border-color: #ffc4c4; border-left: 4px solid #c00000; }
+.ci-item.d30 { background: #fff8f0; border-color: #ffd591; border-left: 4px solid #ff8c00; }
+.ci-item.d90 { background: #fffbf0; border-color: #ffe0b2; border-left: 4px solid #c46500; }
+.ci-item.track { background: #f0f7ff; border-color: #c2dafd; border-left: 4px solid #1F4E79; }
+.ci-row1 {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  align-items: center; margin-bottom: 6px;
+}
+.ci-finding {
+  font-size: 13px; color: #1a1a1a;
+  line-height: 1.6;
+  background: white; padding: 8px 10px;
+  border-radius: 5px; margin-bottom: 5px;
+}
+.ci-plan {
+  font-size: 12px; color: #555;
+  background: white; padding: 6px 10px;
+  border-radius: 5px;
+}
+.ci-plan b { color: #1F4E79; }
+
+/* 卡片標題下的塢修速覽（船廠/主修/輔修）*/
+.dd-head-summary {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(90deg, #f7f9fc, #fafbfd);
+  border-left: 3px solid #1F4E79;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1a1a1a;
+  line-height: 1.7;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  align-items: center;
+}
+.ddh-item { display: inline-flex; align-items: baseline; gap: 4px; }
+.ddh-label {
+  font-size: 11px; font-weight: 700; color: #1F4E79;
+  background: white;
+  padding: 1px 6px; border-radius: 4px;
+  border: 1px solid #d0d7de;
+  letter-spacing: 0.3px;
+}
+.ddh-sep { color: #b0b8c0; padding: 0 6px; font-weight: 300; }
+
+/* 子塢修區塊 */
+.dd-section {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px dashed #d0d7de;
+}
+.dd-section .dd-title {
+  font-size: 13px; font-weight: 700; color: #1F4E79;
+  margin-bottom: 8px;
+}
+.dd-list { display: flex; flex-direction: column; gap: 8px; }
+.dd-item {
+  background: #f8fafd;
+  border: 1px solid #dbe4ee;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.dd-item.cur { background: #fff7e6; border-color: #ffd591; }
+.dd-item.fut { background: #f0f7ff; border-color: #c2dafd; }
+.dd-item.fut-soon { background: #fff0f0; border-color: #ffc4c4; }
+.dd-item.past { background: #f1f8f1; border-color: #cfe4cf; }
+.dd-row1 { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+.dd-row2 { font-size: 13px; color: #333; line-height: 1.6; }
+.dd-row2 b { color: #1F4E79; font-weight: 600; }
+.dd-row2 .sub { color: #666; }
+.dd-row3 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.dd-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.dd-badge-po { background: #e8eaf6; color: #283593; border: 1px solid #c5cae9; }
+.dd-badge-done { background: #e8f5e9; color: #1b5e20; border: 1px solid #c8e6c9; }
+.dd-badge-pending { background: #ffebee; color: #c00000; border: 1px solid #ffcdd2; }
+
+mark {
+  background: #fff59d; color: inherit;
+  padding: 0 1px; border-radius: 2px; font-weight: 600;
+}
+
+.empty {
+  text-align: center; padding: 40px 20px; color: #888;
+}
+.empty .icon { font-size: 48px; margin-bottom: 8px; }
+
+.count {
+  font-size: 12px; color: #666;
+  padding: 4px 12px;
+}
+
+/* 工具列：排序 + 船舶下拉 */
+.toolbar {
+  display: flex; gap: 8px; padding: 0 12px 8px;
+  align-items: center; flex-wrap: wrap;
+}
+.tb-btn {
+  padding: 6px 12px;
+  background: white;
+  border: 1.5px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 13px; font-family: inherit;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  -webkit-appearance: none; appearance: none;
+}
+.tb-btn:active { transform: scale(0.96); }
+.tb-btn.active { background: #1F4E79; color: white; border-color: #1F4E79; }
+.tb-select {
+  padding: 6px 28px 6px 12px;
+  background: white;
+  border: 1.5px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 13px; font-family: inherit;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M2 4l4 4 4-4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  flex: 1; min-width: 140px;
+}
+.tb-select:focus { outline: none; border-color: #1F4E79; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>🚢 船舶管理主控台</h1>
+    <div class="meta" id="meta">資料更新：2026-05-01 06:00</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-tab="dashboard"><span class="icon">📊</span><span class="label">儀表板</span></button>
+    <button data-tab="ships"><span class="icon">🚢</span><span class="label">塢修CLASS</span></button>
+    <button data-tab="events"><span class="icon">⚠️</span><span class="label">船舶事件</span></button>
+    <button data-tab="summaries"><span class="icon">📝</span><span class="label">摘要記錄</span></button>
+    <button data-tab="weekly"><span class="icon">📅</span><span class="label">MT4週報</span></button>
+  </nav>
+
+  <!-- 儀表板 -->
+  <section class="section" id="dashboard">
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </section>
+
+  <!-- 船舶 / 塢修（合併） -->
+  <section class="section hidden" id="ships">
+    <div class="search-bar">
+      <input id="searchShips" type="search" placeholder="🔍 搜尋船名 / 代碼 / PIC / 船廠...">
+    </div>
+    <div class="chips-row">
+      <span class="chips-label">船型</span>
+      <div class="chips" style="padding:0;">
+        <span class="chip" data-type="L">L 30</span>
+        <span class="chip" data-type="O">O 4</span>
+        <span class="chip" data-type="G">G 5</span>
+      </div>
+    </div>
+    <div class="chips-row">
+      <span class="chips-label">塢修</span>
+      <div class="chips" style="padding:0;">
+        <span class="chip dd-active" data-dd="塢修中">🔧 塢修中</span>
+        <span class="chip s1" data-dd="30日內進廠">⏰ 30日內進廠</span>
+        <span class="chip dd-future" data-dd="未進廠">📅 未進廠</span>
+        <span class="chip dd-past" data-dd="已離廠">✓ 已離廠</span>
+        <span class="chip" data-dd="無排程">— 無排程</span>
+      </div>
+    </div>
+    <div class="chips-row">
+      <span class="chips-label">塢修帳</span>
+      <div class="chips" style="padding:0;">
+        <span class="chip s1" data-pay="待付款">💰 塢修帳尚未出帳</span>
+        <span class="chip s2" data-pay="帳單未開">💳 77P尚未維護</span>
+      </div>
+    </div>
+    <div class="chips-row">
+      <span class="chips-label">船級</span>
+      <div class="chips" style="padding:0;">
+        <span class="chip s1" data-ci="逾期">⚠️ CLASS豁免逾期</span>
+        <span class="chip s2" data-ci="30日內">📅 CLASS豁免逾期30日內</span>
+        <span class="chip" data-ci="any">🔔 有待解事項</span>
+      </div>
+    </div>
+    <div class="count" id="shipCount">0 / 0</div>
+    <div id="shipList"></div>
+  </section>
+
+  <!-- 事件 -->
+  <section class="section hidden" id="events">
+    <div class="search-bar">
+      <input id="searchEvents" type="search" placeholder="🔍 搜尋事件...">
+    </div>
+    <div class="toolbar">
+      <select class="tb-select" id="shipSelectEvents"><option value="">🚢 所有船舶</option></select>
+      <button class="tb-btn" id="sortEvents" title="切換排序">📅 新→舊</button>
+    </div>
+    <div class="chips">
+      <span class="chip s1" data-sev="S1-緊急">S1 緊急</span>
+      <span class="chip s2" data-sev="S2-嚴重">S2 嚴重</span>
+      <span class="chip" data-sev="S3-一般">S3 一般</span>
+      <span class="chip" data-status="開放中">開放中</span>
+      <span class="chip" data-status="已結案">已結案</span>
+    </div>
+    <div class="count" id="eventCount">0 / 0</div>
+    <div id="eventList"></div>
+  </section>
+
+  <!-- 摘要 -->
+  <section class="section hidden" id="summaries">
+    <div class="search-bar">
+      <input id="searchSummaries" type="search" placeholder="🔍 搜尋摘要 / 關鍵字...">
+    </div>
+    <div class="toolbar">
+      <select class="tb-select" id="shipSelectSummaries"><option value="">🚢 所有船舶</option></select>
+      <button class="tb-btn" id="sortSummaries" title="切換排序">📅 新→舊</button>
+    </div>
+    <div class="chips">
+      <span class="chip s1" data-sev="S1-緊急">S1</span>
+      <span class="chip s2" data-sev="S2-嚴重">S2</span>
+      <span class="chip" data-sev="S3-一般">S3</span>
+    </div>
+    <div class="count" id="summaryCount">0 / 0</div>
+    <div id="summaryList"></div>
+  </section>
+
+  <!-- 週報 -->
+  <section class="section hidden" id="weekly">
+    <div class="weekly-hero" id="weeklyHero"></div>
+    <div class="weekly-kpi" id="weeklyKpi"></div>
+    <div class="section-title">📋 各船本週狀況</div>
+    <div class="count" id="weeklyCount">—</div>
+    <div id="weeklyShipList"></div>
+    <div class="section-title" style="margin-top:24px;">📁 歷史週報歸檔</div>
+    <div id="weeklyArchive"></div>
+  </section>
+</div>
+
+<script>
+const DATA = {"ships": [{"no": "1", "type": "L", "code": "LMBT", "en_name": "EVER LAMBENT", "cn_name": "長華輪", "class": "LR", "owner": "EMU", "pic_baoshan": "姚勝薰", "pic_caigou": "洪卿茹", "pic_haiji": "鍾紹威", "folder": "D:\\船舶管理日記\\01_各船資料\\船01_長華輪_LMBT\\", "note": "", "drydocks": [], "class_items": []}, {"no": "2", "type": "L", "code": "LDEN", "en_name": "EVER LADEN", "cn_name": "長滿輪", "class": "ABS", "owner": "GMS", "pic_baoshan": "康懷元", "pic_caigou": "洪卿茹", "pic_haiji": "張富翔", "folder": "D:\\船舶管理日記\\01_各船資料\\船02_長滿輪_LDEN\\", "note": "", "drydocks": [], "class_items": []}, {"no": "3", "type": "L", "code": "LSTN", "en_name": "EVER LASTING", "cn_name": "長久輪", "class": "LR", "owner": "EMU", "pic_baoshan": "黃宏奇", "pic_caigou": "洪卿茹", "pic_haiji": "鍾紹威", "folder": "D:\\船舶管理日記\\01_各船資料\\船03_長久輪_LSTN\\", "note": "", "drydocks": [], "class_items": [{"no": "1", "status": "逾期", "code": "LSTN", "cn_name": "長久輪", "en_name": "Ever Lasting", "cert": "", "id": "AI-S-018", "cls": "LR", "due": "2025-10-22", "plan": "", "finding": "EEXI Technical File Update"}]}, {"no": "4", "type": "L", "code": "LDIN", "en_name": "EVER LEADING", "cn_name": "長成輪", "class": "LR", "owner": "EMU", "pic_baoshan": "黃國豪", "pic_caigou": "洪卿茹", "pic_haiji": "鍾紹威", "folder": "D:\\船舶管理日記\\01_各船資料\\船04_長成輪_LDIN\\", "note": "", "drydocks": [], "class_items": []}, {"no": "5", "type": "L", "code": "LAUL", "en_name": "EVER LAUREL", "cn_name": "長冠輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "康懷元", "pic_caigou": "洪卿茹", "pic_haiji": "洪偉晟", "folder": "D:\\船舶管理日記\\01_各船資料\\船05_長冠輪_LAUL\\", "note": "", "drydocks": [], "class_items": []}, {"no": "6", "type": "L", "code": "LBRA", "en_name": "EVER LIBRA", "cn_name": "長秤輪", "class": "CR+LR", "owner": "EMC", "pic_baoshan": "吳明興", "pic_caigou": "洪卿茹", "pic_haiji": "李齊", "folder": "D:\\船舶管理日記\\01_各船資料\\船06_長秤輪_LBRA\\", "note": "", "drydocks": [], "class_items": [{"no": "12", "status": "90日內", "code": "LBRA", "cn_name": "長秤輪", "en_name": "Ever Libra", "cert": "CA19", "id": "968-26-094", "cls": "CR+NK", "due": "2026-07-13", "plan": "", "finding": "The bow echo sounder was out of order.\nIt is recommended that the above-mentioned deficiency to be dealt with as soon as possible but not later than\n13 July 2026.\nThe administration and this society shall be informed immediately if the stern echo sounder is out of order."}]}, {"no": "7", "type": "L", "code": "LWFL", "en_name": "EVER LAWFUL", "cn_name": "長正輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "王治中", "pic_caigou": "洪卿茹", "pic_haiji": "洪偉晟", "folder": "D:\\船舶管理日記\\01_各船資料\\船07_長正輪_LWFL\\", "note": "", "drydocks": [], "class_items": []}, {"no": "8", "type": "L", "code": "LDER", "en_name": "EVER LEADER", "cn_name": "長領輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "許昭笠", "pic_caigou": "洪卿茹", "pic_haiji": "洪偉晟", "folder": "D:\\船舶管理日記\\01_各船資料\\船08_長領輪_LDER\\", "note": "", "drydocks": [{"no": "2", "year": "2025", "code": "LDER", "cn_name": "長領輪", "en_name": "EVER LEADER", "type": "L", "in_date": "2025-10-27", "out_date": "2025-12-01", "days": "35", "shipyard": "岱山長宏", "primary": "張孔法", "secondary": "陸潔", "chief": "", "po": "LDER24D00102R1", "bill": "完成", "payment": "完成", "note": ""}], "class_items": []}, {"no": "9", "type": "L", "code": "LGCY", "en_name": "EVER LEGACY", "cn_name": "長寶輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "黃國豪", "pic_caigou": "洪卿茹", "pic_haiji": "洪偉晟", "folder": "D:\\船舶管理日記\\01_各船資料\\船09_長寶輪_LGCY\\", "note": "", "drydocks": [{"no": "1", "year": "2025", "code": "LGCY", "cn_name": "長寶輪", "en_name": "EVER LEGACY", "type": "L", "in_date": "2025-10-15", "out_date": "2025-11-19", "days": "35", "shipyard": "岱山長宏", "primary": "黃國豪", "secondary": "金春庚", "chief": "", "po": "LGCY24D00102R1", "bill": "完成", "payment": "完成", "note": ""}], "class_items": []}, {"no": "10", "type": "L", "code": "LIVN", "en_name": "EVER LIVEN", "cn_name": "長青輪", "class": "CR+LR", "owner": "EMC", "pic_baoshan": "康懷元", "pic_caigou": "洪卿茹", "pic_haiji": "郭楚勝", "folder": "D:\\船舶管理日記\\01_各船資料\\船10_長青輪_LIVN\\", "note": "", "drydocks": [], "class_items": []}, {"no": "11", "type": "L", "code": "LOGC", "en_name": "EVER LOGIC", "cn_name": "長理輪", "class": "CR+NK", "owner": "EMC", "pic_baoshan": "康懷元", "pic_caigou": "洪卿茹", "pic_haiji": "郭楚勝", "folder": "D:\\船舶管理日記\\01_各船資料\\船11_長理輪_LOGC\\", "note": "", "drydocks": [{"no": "6", "year": "2025", "code": "LOGC", "cn_name": "長理輪", "en_name": "EVER LOGIC", "type": "L", "in_date": "2026-02-24", "out_date": "2026-04-06", "days": "41", "shipyard": "青島北海", "primary": "康懷元", "secondary": "姚勝薰", "chief": "", "po": "LOGC24D00101R1", "bill": "完成", "payment": "尚未", "note": ""}], "class_items": []}, {"no": "12", "type": "L", "code": "LEGN", "en_name": "EVER LEGEND", "cn_name": "長傳輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "黃宏奇", "pic_caigou": "洪卿茹", "pic_haiji": "林原生", "folder": "D:\\船舶管理日記\\01_各船資料\\船12_長傳輪_LEGN\\", "note": "", "drydocks": [{"no": "4", "year": "2025", "code": "LEGN", "cn_name": "長傳輪", "en_name": "EVER LEGEND", "type": "L", "in_date": "2025-12-19", "out_date": "2026-01-26", "days": "38", "shipyard": "舟山中遠", "primary": "黃宏奇", "secondary": "金春庚", "chief": "", "po": "LEGN24D00101R1", "bill": "完成", "payment": "完成", "note": ""}], "class_items": [{"no": "2", "status": "逾期", "code": "LEGN", "cn_name": "長傳輪", "en_name": "Ever Legend", "cert": "", "id": "524.1", "cls": "ABS", "due": "2026-04-21", "plan": "", "finding": "The fractures of main engine foundation, No.3 Main Generator engine foundation and No.4 Main Generator engine foundation were repaired by welding which carried out by qualified welders in accordance with approved welding procedures and using appro"}]}, {"no": "13", "type": "L", "code": "LERN", "en_name": "EVER LEARNED", "cn_name": "長博輪", "class": "LR", "owner": "EMU", "pic_baoshan": "吳明興", "pic_caigou": "洪卿茹", "pic_haiji": "薛竣懌", "folder": "D:\\船舶管理日記\\01_各船資料\\船13_長博輪_LERN\\", "note": "", "drydocks": [{"no": "7", "year": "2025", "code": "LERN", "cn_name": "長博輪", "en_name": "EVER LEARNED", "type": "L", "in_date": "2026-03-09", "out_date": "2026-04-18", "days": "40", "shipyard": "舟山中遠", "primary": "吳明興", "secondary": "王永義", "chief": "", "po": "LERN25D00103R1", "bill": "完成", "payment": "尚未", "note": ""}], "class_items": []}, {"no": "14", "type": "L", "code": "LGON", "en_name": "EVER LEGION", "cn_name": "長征輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "黃宏奇", "pic_caigou": "洪卿茹", "pic_haiji": "洪偉晟", "folder": "D:\\船舶管理日記\\01_各船資料\\船14_長征輪_LGON\\", "note": "", "drydocks": [{"no": "5", "year": "2025", "code": "LGON", "cn_name": "長征輪", "en_name": "EVER LEGION", "type": "L", "in_date": "2026-02-05", "out_date": "2026-03-23", "days": "46", "shipyard": "舟山中遠", "primary": "黃宏奇", "secondary": "林致宇", "chief": "", "po": "LGON24D00101R1", "bill": "完成", "payment": "尚未", "note": ""}], "class_items": []}, {"no": "15", "type": "L", "code": "LTUS", "en_name": "EVER LOTUS", "cn_name": "長蓮輪", "class": "ABS", "owner": "GMS", "pic_baoshan": "王治中", "pic_caigou": "洪卿茹", "pic_haiji": "張富翔", "folder": "D:\\船舶管理日記\\01_各船資料\\船15_長蓮輪_LTUS\\", "note": "", "drydocks": [{"no": "15", "year": "2026", "code": "LTUS", "cn_name": "長蓮輪", "en_name": "EVER LOTUS", "type": "L", "in_date": "2026-10-26", "out_date": "2026-12-05", "days": "40", "shipyard": "青島北海", "primary": "王治中", "secondary": "吳杰", "chief": "", "po": "LTUS25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": []}, {"no": "16", "type": "L", "code": "LIVY", "en_name": "EVER LIVELY", "cn_name": "長茂輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "許昭笠", "pic_caigou": "洪卿茹", "pic_haiji": "洪偉晟", "folder": "D:\\船舶管理日記\\01_各船資料\\船16_長茂輪_LIVY\\", "note": "", "drydocks": [{"no": "9", "year": "2026", "code": "LIVY", "cn_name": "長茂輪", "en_name": "EVER LIVELY", "type": "L", "in_date": "2026-04-14", "out_date": "2026-05-18", "days": "34", "shipyard": "青島北海", "primary": "華庭瑤", "secondary": "吳杰", "chief": "", "po": "LIVY26D00102R1", "bill": "", "payment": "", "note": ""}], "class_items": [{"no": "4", "status": "30日內", "code": "LIVY", "cn_name": "長茂輪", "en_name": "Ever Lively", "cert": "", "id": "546.1", "cls": "ABS", "due": "2026-05-08", "plan": "", "finding": "The vessel was subjected PSC intervention in Qingdao, China on 05 January 2026 and the deficiency was raised by PSCO: (Code No. 10117)\nThe fwd. sensor of echo sounder found defective: indicating sea water depth with significant error. (acti"}]}, {"no": "17", "type": "L", "code": "LENT", "en_name": "EVER LENIENT", "cn_name": "長慈輪", "class": "LR", "owner": "EMU", "pic_baoshan": "王治中", "pic_caigou": "洪卿茹", "pic_haiji": "薛竣懌", "folder": "D:\\船舶管理日記\\01_各船資料\\船17_長慈輪_LENT\\", "note": "", "drydocks": [{"no": "17", "year": "2026", "code": "LENT", "cn_name": "長慈輪", "en_name": "EVER LENIENT", "type": "L", "in_date": "2027-01-03", "out_date": "2027-02-10", "days": "38", "shipyard": "舟山中遠", "primary": "王治中", "secondary": "姚勝薰", "chief": "陸潔", "po": "LENT25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": [{"no": "7", "status": "30日內", "code": "LENT", "cn_name": "長慈輪", "en_name": "Ever Lenient", "cert": "", "id": "AI-C-019", "cls": "LR", "due": "2026-05-16", "plan": "", "finding": "ME CYLINDER NO.4 JCW LINER LEAKAGE"}, {"no": "11", "status": "90日內", "code": "LENT", "cn_name": "長慈輪", "en_name": "Ever Lenient", "cert": "", "id": "CoC-E-001", "cls": "LR", "due": "2026-07-10", "plan": "", "finding": "FIRE/WATER INGRESS DAMAGE TO ELECTRICAL EQUIPMENT"}]}, {"no": "18", "type": "L", "code": "LOYL", "en_name": "EVER LOYAL", "cn_name": "長忠輪", "class": "CR+NK", "owner": "EMC", "pic_baoshan": "吳明興", "pic_caigou": "洪卿茹", "pic_haiji": "郭楚勝", "folder": "D:\\船舶管理日記\\01_各船資料\\船18_長忠輪_LOYL\\", "note": "", "drydocks": [{"no": "18", "year": "2026", "code": "LOYL", "cn_name": "長忠輪", "en_name": "EVER LOYAL", "type": "L", "in_date": "2027-03-01", "out_date": "2027-04-19", "days": "49", "shipyard": "舟山中遠", "primary": "吳明興", "secondary": "吳杰", "chief": "", "po": "LOYL25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": []}, {"no": "19", "type": "L", "code": "LBRL", "en_name": "EVER LIBERAL", "cn_name": "長朗輪", "class": "LR", "owner": "EMU", "pic_baoshan": "王治中", "pic_caigou": "洪卿茹", "pic_haiji": "鍾紹威", "folder": "D:\\船舶管理日記\\01_各船資料\\船19_長朗輪_LBRL\\", "note": "", "drydocks": [], "class_items": []}, {"no": "20", "type": "L", "code": "LUKY", "en_name": "EVER LUKY", "cn_name": "長幸輪", "class": "ABS", "owner": "GMS", "pic_baoshan": "姚勝薰", "pic_caigou": "洪卿茹", "pic_haiji": "張富翔", "folder": "D:\\船舶管理日記\\01_各船資料\\船20_長幸輪_LUKY\\", "note": "", "drydocks": [], "class_items": []}, {"no": "21", "type": "L", "code": "LVNG", "en_name": "EVER LIVING", "cn_name": "長旺輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "吳明興", "pic_caigou": "洪卿茹", "pic_haiji": "余臣豐", "folder": "D:\\船舶管理日記\\01_各船資料\\船21_長旺輪_LVNG\\", "note": "", "drydocks": [{"no": "11", "year": "2026", "code": "LVNG", "cn_name": "長旺輪", "en_name": "EVER LIVING", "type": "L", "in_date": "2026-05-04", "out_date": "2026-06-08", "days": "35", "shipyard": "青島北海", "primary": "吳明興", "secondary": "金春庚", "chief": "", "po": "LVNG25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": []}, {"no": "22", "type": "L", "code": "LKIN", "en_name": "EVER LINKING", "cn_name": "長連輪", "class": "LR", "owner": "EMU", "pic_baoshan": "姚勝薰", "pic_caigou": "洪卿茹", "pic_haiji": "薛竣懌", "folder": "D:\\船舶管理日記\\01_各船資料\\船22_長連輪_LKIN\\", "note": "", "drydocks": [{"no": "13", "year": "2026", "code": "LKIN", "cn_name": "長連輪", "en_name": "EVER LINKING", "type": "L", "in_date": "2026-05-11", "out_date": "2026-06-23", "days": "43", "shipyard": "青島北海", "primary": "姚勝薰", "secondary": "康懷元", "chief": "", "po": "LKIN25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": [{"no": "5", "status": "30日內", "code": "LKIN", "cn_name": "長連輪", "en_name": "Ever Linking", "cert": "", "id": "AI-S-024", "cls": "LR", "due": "2026-05-10", "plan": "", "finding": "No.2 ECDIS not working."}, {"no": "6", "status": "30日內", "code": "LKIN", "cn_name": "長連輪", "en_name": "Ever Linking", "cert": "", "id": "SF-P-002", "cls": "LR", "due": "2026-05-15", "plan": "", "finding": "CH FIRE DETECTION AND ALARM SYSTEM DEFECT"}, {"no": "9", "status": "90日內", "code": "LKIN", "cn_name": "長連輪", "en_name": "Ever Linking", "cert": "", "id": "AI-C-027", "cls": "LR", "due": "2026-05-31", "plan": "", "finding": "Cargo hold hatch coamings corrosion"}, {"no": "14", "status": "追蹤中", "code": "LKIN", "cn_name": "長連輪", "en_name": "Ever Linking", "cert": "CA19", "id": "", "cls": "LR", "due": "2028-10-29", "plan": "驗船師已登輪完成檢驗，已發信請船端盡快維護系統。", "finding": ""}]}, {"no": "23", "type": "L", "code": "LUCD", "en_name": "EVER LUCID", "cn_name": "長輝輪", "class": "CR+NK", "owner": "EMC", "pic_baoshan": "康懷元", "pic_caigou": "洪卿茹", "pic_haiji": "陳禹安", "folder": "D:\\船舶管理日記\\01_各船資料\\船23_長輝輪_LUCD\\", "note": "", "drydocks": [{"no": "16", "year": "2026", "code": "LUCD", "cn_name": "長輝輪", "en_name": "EVER LUCID", "type": "L", "in_date": "2026-11-02", "out_date": "2026-12-09", "days": "37", "shipyard": "青島北海", "primary": "康懷元", "secondary": "陸潔", "chief": "", "po": "LUCD25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": []}, {"no": "24", "type": "L", "code": "LUCT", "en_name": "EVER LUCENT", "cn_name": "長亮輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "許昭笠", "pic_caigou": "洪卿茹", "pic_haiji": "余臣豐", "folder": "D:\\船舶管理日記\\01_各船資料\\船24_長亮輪_LUCT\\", "note": "", "drydocks": [{"no": "10", "year": "2026", "code": "LUCT", "cn_name": "長亮輪", "en_name": "EVER LUCENT", "type": "L", "in_date": "2026-04-22", "out_date": "2026-05-26", "days": "34", "shipyard": "青島北海", "primary": "許昭笠", "secondary": "陸潔", "chief": "", "po": "LUCT25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": []}, {"no": "25", "type": "L", "code": "LISM", "en_name": "EVER LISSOME", "cn_name": "長通輪", "class": "LR", "owner": "EMU", "pic_baoshan": "姚勝薰", "pic_caigou": "洪卿茹", "pic_haiji": "鍾紹威", "folder": "D:\\船舶管理日記\\01_各船資料\\船25_長通輪_LISM\\", "note": "", "drydocks": [], "class_items": []}, {"no": "26", "type": "L", "code": "LODG", "en_name": "EVER LOADING", "cn_name": "長盛輪", "class": "LR", "owner": "EMU", "pic_baoshan": "黃宏奇", "pic_caigou": "洪卿茹", "pic_haiji": "李亞倫", "folder": "D:\\船舶管理日記\\01_各船資料\\船26_長盛輪_LODG\\", "note": "", "drydocks": [{"no": "19", "year": "2026", "code": "LODG", "cn_name": "長盛輪", "en_name": "EVER LOADING", "type": "L", "in_date": "2027-03-06", "out_date": "2027-04-10", "days": "35", "shipyard": "青島北海", "primary": "黃宏奇", "secondary": "康懷元", "chief": "王永義", "po": "LODG25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": []}, {"no": "27", "type": "L", "code": "LUNR", "en_name": "EVER LUNAR", "cn_name": "長月輪", "class": "CR+NK", "owner": "EMC", "pic_baoshan": "許昭笠", "pic_caigou": "洪卿茹", "pic_haiji": "李齊", "folder": "D:\\船舶管理日記\\01_各船資料\\船27_長月輪_LUNR\\", "note": "", "drydocks": [], "class_items": []}, {"no": "28", "type": "L", "code": "LRIC", "en_name": "EVER LYRIC", "cn_name": "長頌輪", "class": "CR+NK", "owner": "EMC", "pic_baoshan": "吳明興", "pic_caigou": "洪卿茹", "pic_haiji": "張富翔", "folder": "D:\\船舶管理日記\\01_各船資料\\船28_長頌輪_LRIC\\", "note": "", "drydocks": [], "class_items": [{"no": "13", "status": "追蹤中", "code": "LRIC", "cn_name": "長頌輪", "en_name": "Ever Lyric", "cert": "CA19", "id": "976-26-121", "cls": "CR+NK", "due": "2026-08-01", "plan": "備品 (單號LRIC26S04601) 已於20260427 MYPKL送到船上，待船端更換修復。", "finding": "It is recommended that the permanent repair to the incinerator to be dealt with as soon as possible\nbut not later than 01 August 2026 granted by the Flag administration"}]}, {"no": "29", "type": "L", "code": "LOVY", "en_name": "EVER LOVELY", "cn_name": "長麗輪", "class": "ABS", "owner": "EMS", "pic_baoshan": "黃宏奇", "pic_caigou": "洪卿茹", "pic_haiji": "洪偉晟", "folder": "D:\\船舶管理日記\\01_各船資料\\船29_長麗輪_LOVY\\", "note": "", "drydocks": [], "class_items": [{"no": "8", "status": "30日內", "code": "LOVY", "cn_name": "長麗輪", "en_name": "Ever Lovely", "cert": "CA19", "id": "447.1", "cls": "ABS", "due": "2026-05-30", "plan": "20260417長麗返回高雄港後，由ABS結束此案", "finding": "At the request of the vessel’s representative, damage survey was carried out for common chain with studs of anchor chain were welded on both sides (refer to WO#7241755). After investigation, it was found that nine (9) studs had been welded on both"}]}, {"no": "30", "type": "L", "code": "LFTG", "en_name": "EVER LIFTING", "cn_name": "長昇輪", "class": "LR", "owner": "EMU", "pic_baoshan": "姚勝薰", "pic_caigou": "洪卿茹", "pic_haiji": "李亞倫", "folder": "D:\\船舶管理日記\\01_各船資料\\船30_長昇輪_LFTG\\", "note": "", "drydocks": [], "class_items": []}, {"no": "31", "type": "O", "code": "OENT", "en_name": "EVER ORIENT", "cn_name": "長旭輪", "class": "NK", "owner": "EGH", "pic_baoshan": "黃國豪", "pic_caigou": "陳信榕", "pic_haiji": "郭楚勝", "folder": "D:\\船舶管理日記\\01_各船資料\\船31_長旭輪_OENT\\", "note": "", "drydocks": [{"no": "3", "year": "2025", "code": "OENT", "cn_name": "長旭輪", "en_name": "EVER ORIENT", "type": "O", "in_date": "2025-12-11", "out_date": "2025-12-25", "days": "14", "shipyard": "廣東中遠", "primary": "黃國豪", "secondary": "許昭笠", "chief": "", "po": "OENT24D00101R1", "bill": "完成", "payment": "尚未", "note": ""}], "class_items": []}, {"no": "32", "type": "O", "code": "OEAN", "en_name": "EVER OCEAN", "cn_name": "長洋輪", "class": "NK", "owner": "EGH", "pic_baoshan": "王治中", "pic_caigou": "陳信榕", "pic_haiji": "陳宏益", "folder": "D:\\船舶管理日記\\01_各船資料\\船32_長洋輪_OEAN\\", "note": "", "drydocks": [{"no": "8", "year": "2026", "code": "OEAN", "cn_name": "長洋輪", "en_name": "EVER OCEAN", "type": "O", "in_date": "2026-04-08", "out_date": "2026-04-29", "days": "21", "shipyard": "廣東中遠", "primary": "王治中", "secondary": "曹維麟", "chief": "", "po": "OEAN25D00101R1", "bill": "尚未", "payment": "尚未", "note": ""}], "class_items": [{"no": "3", "status": "逾期", "code": "OEAN", "cn_name": "長洋輪", "en_name": "Ever Ocean", "cert": "", "id": "", "cls": "NK", "due": "2026-04-25", "plan": "", "finding": "The temporary repaired distance piece of the discharge line of EGCS at Fr. 38 in Engine Room Port Side is to be permanently repaired not later than next special survey due date below, subject to re-inspection internally from engine room and externally by diver at time of annual surveys."}]}, {"no": "33", "type": "O", "code": "OASI", "en_name": "EVER OASIS", "cn_name": "長澤輪", "class": "NK", "owner": "EGH", "pic_baoshan": "黃國豪", "pic_caigou": "陳信榕", "pic_haiji": "郭楚勝", "folder": "D:\\船舶管理日記\\01_各船資料\\船33_長澤輪_OASI\\", "note": "", "drydocks": [{"no": "12", "year": "2026", "code": "OASI", "cn_name": "長澤輪", "en_name": "EVER OASIS", "type": "O", "in_date": "2026-05-10", "out_date": "2026-05-30", "days": "20", "shipyard": "廣東中遠", "primary": "黃國豪", "secondary": "楊旭騁", "chief": "", "po": "OASI25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": [{"no": "10", "status": "90日內", "code": "OASI", "cn_name": "長澤輪", "en_name": "Ever Oasis", "cert": "", "id": "", "cls": "NK", "due": "2026-07-05", "plan": "", "finding": "Temporary repair by doubler plate on the starboard side shell, in way of the No.1 Aft WBT between Fr.173–174, is to be permanently repaired at the Owner’s earliest opportunity, but no later than the next docking survey due date as stated below."}]}, {"no": "34", "type": "O", "code": "ORDR", "en_name": "EVER ORDER", "cn_name": "長順輪", "class": "NK", "owner": "EGH", "pic_baoshan": "黃國豪", "pic_caigou": "許博傑", "pic_haiji": "郭楚勝", "folder": "D:\\船舶管理日記\\01_各船資料\\船34_長順輪_ORDR\\", "note": "", "drydocks": [{"no": "14", "year": "2026", "code": "ORDR", "cn_name": "長順輪", "en_name": "EVER ORDER", "type": "O", "in_date": "2026-05-21", "out_date": "2026-06-07", "days": "17", "shipyard": "廣東中遠", "primary": "黃國豪", "secondary": "楊旭騁", "chief": "", "po": "ORDR25D00101R1", "bill": "", "payment": "", "note": ""}], "class_items": []}, {"no": "35", "type": "G", "code": "GENS", "en_name": "EVER GENIUS", "cn_name": "長智輪", "class": "LR", "owner": "EMA", "pic_baoshan": "林致宇", "pic_caigou": "陳信榕", "pic_haiji": "", "folder": "D:\\船舶管理日記\\01_各船資料\\船35_長智輪_GENS\\", "note": "", "drydocks": [], "class_items": []}, {"no": "36", "type": "G", "code": "GENT", "en_name": "EVER GENTLE", "cn_name": "長雅輪", "class": "", "owner": "", "pic_baoshan": "林致宇", "pic_caigou": "陳信榕", "pic_haiji": "", "folder": "D:\\船舶管理日記\\01_各船資料\\船36_長雅輪_GENT\\", "note": "", "drydocks": [], "class_items": []}, {"no": "37", "type": "G", "code": "GFTD", "en_name": "EVER GIFTED", "cn_name": "長俊輪", "class": "NK", "owner": "", "pic_baoshan": "許昭笠", "pic_caigou": "陳信榕", "pic_haiji": "", "folder": "D:\\船舶管理日記\\01_各船資料\\船37_長俊輪_GFTD\\", "note": "", "drydocks": [], "class_items": []}, {"no": "38", "type": "G", "code": "GREE", "en_name": "EVER GREET", "cn_name": "長賀輪", "class": "", "owner": "", "pic_baoshan": "林致宇", "pic_caigou": "陳信榕", "pic_haiji": "", "folder": "D:\\船舶管理日記\\01_各船資料\\船38_長賀輪_GREE\\", "note": "", "drydocks": [], "class_items": []}, {"no": "39", "type": "G", "code": "GVRN", "en_name": "EVER GOVERN", "cn_name": "長政輪", "class": "", "owner": "", "pic_baoshan": "林致宇", "pic_caigou": "陳信榕", "pic_haiji": "", "folder": "D:\\船舶管理日記\\01_各船資料\\船39_長政輪_GVRN\\", "note": "", "drydocks": [], "class_items": []}], "events": [{"no": "", "date": "2026-04-29", "code": "LUKY", "ship": "", "category": "電氣", "severity": "S3-一般", "summary": "長幸輪 LUKY 右舷 AMP（岸電）故障。鹽田港尚無法找到問題點。", "action": "計劃 5/3 上海港再行施作排查；維修完成後請廠家整理故障問題點，再研討後續行動方案。", "status": "等待入港", "owner": "保船 PIC", "link": "摘要紀錄第 24 列", "close_date": "", "note": "二港排查中，待 5/3 上海港"}, {"no": "", "date": "2026-04-27", "code": "GENS", "ship": "", "category": "電氣", "severity": "S2-嚴重", "summary": "全船失電（Blackout）後事後分析。重大設計差異：本輪僅一臺 EMERG MDO/MGO PUMP 跳電後自動啟動，無手動按鈕；與長榮自有船「氣動泵+MDO 泵」雙保險不同。", "action": "提報改裝可行性評估：加裝手動啟動按鈕或備援泵；建議立共案。電路圖 E-34, P194 已附。", "status": "處理中", "owner": "海技 PIC", "link": "摘要紀錄第 13 列", "close_date": "", "note": "重大設計缺失，跨同型船檢視"}, {"no": "", "date": "2026-04-27", "code": "GFTD", "ship": "", "category": "救生消防", "severity": "S2-嚴重", "summary": "缺失整改 15+ 項：醫療室藥品、防火門故障、EPIRB 手冊更新、滅火器月檢、駕駛台雨刷、艏推進器房應急燈、Oxy & Ace 瓶數不足、艏甲板開關箱、繫纜線保護、繫纜機刹車皮、消防水龍帶箱、救生艇電池日期、FFA drum 對講機(非無爆型)。", "action": "依清單逐項整改；安全相關（防火門/應急燈/滅火器/EPIRB/無爆對講機）優先；繫纜機刹車皮待備品送船更換。", "status": "待處理", "owner": "保船 PIC", "link": "摘要紀錄第 14 列", "close_date": "", "note": "含多項安全裝備缺失"}, {"no": "", "date": "2026-04-27", "code": "LDEN", "ship": "", "category": "船體結構", "severity": "S3-一般", "summary": "缺失整改 11+ 項：水尺/外板油漆、Bay 74 通風口、Upper/A Deck 通風隔柵、房間沙發椅、甲板前後導輪卡死、LB 21 燈具、救生艇架除鏽、舵機房積水、Bay 36/40 lashing bridge、CH 4/5/6 清掃。", "action": "船端依清單逐項整改；通風馬達啟動 SOP 提醒（Damper 全開避免燒毀）。", "status": "待處理", "owner": "保船 PIC", "link": "摘要紀錄第 6 列", "close_date": "", "note": ""}, {"no": "", "date": "2026-04-25", "code": "LVNG", "ship": "", "category": "主機", "severity": "S2-嚴重", "summary": "大連港進港時主機第二缸 FO BOOSTER stroke too high；隨後 PSC 開立 4 項缺失。主機異常初判第二、三缸各有一隻油頭積碳卡死。", "action": "11:30 船方修復、15:00 進港。PSC 4 項缺失：耳塞警示已修正、SOC FUEL 報告已修正、110V 低絕緣[2 個月內]、Pipe duct 水密門指示[2 個月內]。\n【4/27 完整檢討報告】直接原因=NO.2/NO.3 缸 FUEL INJECTION VALVE 滑閥積碳卡死（第三缸並伴隨彈簧斷裂）；根本原因 4 項：MGO 切換致碳渣脫落+潤滑性差、NO.4 FO PURIFIER 故障無法淨化、MGO Tank 殘水進入系統、BUFFER UNIT 驅氣失效（80-82°C 加熱致氣體累積）。檢討：誤判為高壓油泵故障未即時 MOP 切斷單缸。", "status": "處理中", "owner": "保船 PIC", "link": "摘要紀錄第 4、5、21 列", "close_date": "", "note": "PSC 2 項需 2 個月內糾正"}, {"no": "", "date": "2026-04-24", "code": "LEGN", "ship": "", "category": "主機", "severity": "S3-一般", "summary": "訪船發現多項待修：(1)主機三號 T/C 轉子葉片擊傷；(2)四部發電機高負載排氣溫度超警戒；(3)110V 低絕緣初判遙控閥電路接地；(4)電羅經備件老化。", "action": "T/C 已用備品清潔安裝、舊品下航次卸岸再生；輪機長擬優先保養四號發電機；110V 已安排上海技師；主機/發電機裂紋擬於上海年檢簽結 Outstanding。", "status": "處理中", "owner": "輪機長+上海技師", "link": "摘要紀錄第 3 列", "close_date": "", "note": "訪船日：4/24"}, {"no": "", "date": "2026-04-23", "code": "LOGC", "ship": "", "category": "主機", "severity": "S2-嚴重", "summary": "艏車漏水(油) — 上海港已卸下艏車本體（TOC260166），4/26 送長傳輪轉回高雄案暫緩，本體暫放琛盛車間。海水侵蝕近一個月恐鏽蝕。", "action": "PO LOGC26C01901: 5/23 天津新港水下檢查；PO LOGC26C02001: 5/29 或 5/31 維修。決議方向：本體交換後再生為主要方案。墊片料號 30、132 待建立。", "status": "處理中", "owner": "康懷元", "link": "摘要紀錄第 15 列", "close_date": "", "note": "Email：康懷元↔陸潔；琛盛 vs 儒海評估"}, {"no": "", "date": "2026-04-22", "code": "LGCY", "ship": "", "category": "主機", "severity": "S2-嚴重", "summary": "主機第四缸高溫報警（船端速報 .txt 檔案空白，僅由檔名得知）。", "action": "待船端補充詳細報告：警報時間、處理過程、是否已排除。", "status": "等待備品", "owner": "保船 PIC", "link": "摘要紀錄第 2 列", "close_date": "", "note": "⚠️ .txt 空白，需詢問補登"}, {"no": "", "date": "2026-04-13", "code": "LISM", "ship": "", "category": "主機", "severity": "S2-嚴重", "summary": "LISM 主機 CCU#3 第三缸排氣閥低行程警報、伴隨大量液壓油洩漏。依序更換多項備件無法排除；根本原因：第三缸排氣閥液壓管底部 Disc Special 遺失（最可能於更換 actuator 時漏裝）。", "action": "4/13 18:00 警報，依序換感測器/總成/actuator/MPC10，CH34 從 10.1mA→6.4mA 仍報警；4/14 13:00 總部指示後再換 non-return valves/液壓管/FIVA，CH34 達 0.4mA；4/15 08:00 4E 發現遺失 Disc Special，安裝後 15:00 主機恢復正常。4/23 CE 確認舊備件全部換回後正常，所有原備件均完好可入庫。\n【4/27 Case Study v2】完整八節結構公告：直接原因=Disc Special 漏裝、根本原因=故障排除流程偏差+Shotgun 換件。改善建議：導入「組裝完整性→信號電氣→元件本體」三階段排故順序卡、HCU/CCU EVENT Log 列必要動作、換件「換一項測一項」收斂原則。", "status": "已解決", "owner": "姚勝薰+CE SORIANO", "link": "摘要紀錄第 16、20 列", "close_date": "2026-04-15", "note": "Case Study 候選；舊備件回裝確認完好"}, {"no": "", "date": "2026-04-12", "code": "LENT", "ship": "", "category": "船體結構", "severity": "S2-嚴重", "summary": "新加坡港貨艙進水事件 — 4/12 抵港，5/6 號貨艙進水。已調 5 部 ISO 槽車支援清艙、Anti-Heeling pump 損壞、馬達線路檢修、燈具/110V電線/Bilge alarm 修復。4/27 上半部艙壁與 cell guides 視覺巡查未發現受損變形。", "action": "三日連續每日進度回報（4/25-4/27）；GM/橫傾/吃水差/最大彎曲力矩監控；CH5/CH6 設備修復、戶外燈具與110V低絕緣修理中。\n【4/28 補充】6 個 ISO Tank 已抽出；#5 貨艙水位已降至左 0.01m / 右 0m（接近抽乾）；連續安全巡查貨櫃無異常；4/28 #6 艙底跨艙清潔啟動，岸上+船上+Net Line 三方清潔組協作中。\n【4/29 進度】Net Line 清潔組多工並行：#5/#6 艙蓋上方/A 甲板/上甲板/Bay 42-54 沖洗清潔；#6 艙底清潔與抽水；垃圾收集。水位穩定：#6 PORT 0.13m / STBD 0.29m，#5 PORT 0.01m。累計 6 個 ISO Tank 已抽出。氣體偵測 O₂ 20.9% 正常。\n【4/30 進度與視覺巡查】#6 殘水降至 PORT 0.03m / STBD 0.10m；#5 PORT 0.29m。穩度 GM 5.27m / Trim 0.60m。**視覺巡查重要結論：艙壁與 cell guides 均未觀察到受損變形**（重要里程碑）。Tank Top 與覆蓋部位待剩餘貨櫃卸船後再檢查。", "status": "處理中", "owner": "保船+海技 PIC", "link": "摘要紀錄第 4、8、9、10 列", "close_date": "", "note": "下半部艙底待貨櫃清空後評估"}, {"no": "", "date": "2026-04-09", "code": "LSTN", "ship": "", "category": "船體結構", "severity": "S2-嚴重", "summary": "4/9 21:38 LT 上海洋山港離港往寧波途中遇 12 級強風，貨櫃吹起、受損。包含綁紮橋、駕駛台後方欄杆、屋簷、煙囪外板、艏大桅周圍欄杆損傷。", "action": "4/18-19 完成綁紮橋/煙囪/艏大桅修繕；4/21 靠泊甬舟碼頭完成艏大桅、雷達、BWTS 修理；4/22 CLASS 復檢正式結案；新證書 SAFCON/SE/IBWMC 至 AUG/30/2027；4/23 海事局複查所有缺失關閉。", "status": "結案", "owner": "保船 PIC", "link": "摘要紀錄第 4 列", "close_date": "2026-04-22", "note": "已正式結案"}, {"no": "", "date": "2026-04-30", "code": "O-TYPE", "ship": "", "category": "主機", "severity": "S2-嚴重", "summary": "O 型船主機鋼頭螺絲案例（檔案空白，僅檔名）。可能涉及 O 型船 4 艘共通議題：OENT 長旭、OEAN 長洋、OASI 長澤、ORDR 長順。", "action": "待船端補充詳細案例：哪艘船、螺絲問題類型、處理對策、是否需跨同型船檢視。建議列入 Case Study 候選。", "status": "待處理", "owner": "保船 PIC", "link": "摘要紀錄第 28 列", "close_date": "", "note": "⚠️ 空白檔，待補登；跨船型共通案例候選"}, {"no": "", "date": "2026-04-30", "code": "LRIC", "ship": "", "category": "電氣", "severity": "S3-一般", "summary": "GE OMD（油霧偵測器）膠圈硬化，從進出口氣道與底板平面處滲入。", "action": "① 訂購新膠圈備品（建議全部 OMD 端口全套）；② 檢查其他同型船 GE OMD 膠圈狀態；③ 短期觀察滲入嚴重度，若影響偵測精度需立即停機處理。", "status": "待處理", "owner": "保船 PIC", "link": "摘要紀錄第 30 列", "close_date": "", "note": "建議跨同型船檢視 OMD 膠圈老化問題"}, {"no": "14", "date": "2026-05-01", "code": "GENT", "ship": "長雅輪 EVER GENTLE", "category": "缺失", "severity": "S2-嚴重", "summary": "GENT 長雅輪 4/30 新加坡接船；Anchor Chain Stopper 備品錯誤（左規裝右舷），PSC 風險，Class ABS 要求 Maker Guidance。", "action": "請新加坡 Surveyor 登輪檢驗開 Outstanding；ABS 取得 Maker Guidance；賣方下訂正確規格 Stopper（預計 3 個月到貨）；後續排安裝計畫。", "status": "處理中", "owner": "海技 PIC + Surveyor", "link": "0501-長雅輪GENT新加坡簽約交船事件簿(完成).txt", "close_date": "", "note": "新接船首件追蹤項目；3 個月備品到貨後安裝結案"}], "summaries": [{"no": "", "date": "2026-04-29", "file": "0429長博LERN進廠吃水(完成).txt", "code": "LERN", "ship": "", "category": "塢修進度", "severity": "S3-一般", "summary": "長博輪 LERN 青島北海船廠進廠吃水 7 米限制研判。技術背景：螺槳全浸沒需 9 米，7 米代表螺槳 2/3 露出水面。兩種應對方式：(1) 慢速航行抵港；(2) 到錨地調水。參考案例：① 長茂輪 LIVY 從青島（距離近），7.5 米吃水，走 36~46 轉慢速開過來；② 長亮輪 LUCT 從寧波（距離長），9.5 米吃水，到達 3 號錨地後花 16 小時調水再進廠。LERN 即將進塢需提前評估航程與錨地調水時間。", "follow": "① 確認 LERN 預定進塢日；② 評估 LERN 起航港距離決定採慢速航行或錨地調水；③ 若需錨地調水，預留 16 小時作業時間；④ 進塢前確認吃水達 7 米限制", "keywords": "LERN、青島北海、進廠吃水、7米限制、慢速航行、錨地調水", "note": "參考 LIVY/LUCT 進塢經驗"}, {"no": "", "date": "2026-04-29", "file": "429 長幸輪LUKY右舷AMP故障(完成).txt", "code": "LUKY", "ship": "", "category": "電氣異常", "severity": "S3-一般", "summary": "長幸輪 LUKY 4/29 右舷 AMP 故障速報。鹽田港尚無法找到問題；計劃 5/3 上海港再行施作。完修後請廠家整理故障問題點，再研討後續行動方案。", "follow": "① 5/3 上海港 AMP 維修；② 維修完成後請廠家整理故障點；③ 後續行動方案研討；④ 確認 LUKY 排定上海靠泊時間", "keywords": "LUKY、長幸輪、AMP、右舷、電氣、鹽田港、上海港", "note": "AMP 故障案，二港排查中"}, {"no": "", "date": "2026-04-29", "file": "2026-04-29_LENT- Daily progress (20260429 0700LT)(完成).docx", "code": "LENT", "ship": "", "category": "其他事件", "severity": "S2-嚴重", "summary": "新加坡港作業 4/29 早上進度（07:00 LT）。承 4/28 17:00 後續：4/28 16:28 完成 Bay 46 艙蓋沖洗、轉至 Bay 50；17:10 暫停 #5 清潔；18:30 停 2 部高壓水機；18:46 暫停 #6 清潔；18:50 結束今日作業。19:00-23:59 持續每小時測深，水位穩定（#6 PORT 0.13-0.14m / STBD 0.23-0.29m，#5 PORT 0.01m / STBD 0.00m）；23:59 氣體偵測 O₂ 20.9% 正常。4/29 凌晨 01:00 #6 STBD 微降至 0.19m。", "follow": "持續每日進度回報；殘水監控；進入 4/29 全天作業階段", "keywords": "LENT、新加坡、4/29 早上、艙蓋沖洗、Bay 46、Bay 50、Net Line", "note": "LENT 案件處理中第 18 天；早上 0700LT 報告"}, {"no": "", "date": "2026-04-29", "file": "2026-04-29_LENT- Daily progress (20260429 1700LT)(完成).docx + 中文 docx + pdf", "code": "LENT", "ship": "", "category": "其他事件", "severity": "S2-嚴重", "summary": "新加坡港作業 4/29 下午進度（17:00 LT）。早上 08:00 #6 PORT 0.13m / STBD 0.29m，#5 PORT 0.01m / STBD 0.00m，氣體偵測 O₂ 20.9% 正常。08:45 開始 Net Line 清潔組各項作業（#5/#6 艙蓋上方掃除清潔、#6 艙底清潔、#6 重啟抽水）；09:15 #5 艙蓋上方沖洗；10:15 A 甲板左舷沖洗；11:00 上甲板左舷沖洗；11:15 完成 #5 艙蓋沖洗，開始 #6 艙蓋；11:20 完成上甲板左舷/走道及船尾左舷沖洗；11:45 暫停 #6 艙蓋與艙底清潔。13:25 重啟 Bay 54 右舷沖洗、#6 掃艙、#6 左舷艙底清潔；14:05 上甲板右舷生活區沖洗；14:10 Bay 42 至船尾甲板沖洗；14:40 #6 貨艙垃圾收集；15:00 #6 PORT 0.13 / STBD 0.29，#5 PORT 0.01 / STBD 0.00；16:20 完成右舷上甲板沖洗；16:22 停止 #6 掃艙。累計 6 個 ISO Tank 滿載已從 5/6 號貨艙抽出。", "follow": "4/29 全天作業 Net Line 清潔組多項並行；殘水穩定；下半部艙底評估待進一步清艙", "keywords": "LENT、新加坡、4/29 下午、Net Line 清潔組、Bay 42、Bay 54、艙蓋沖洗、甲板沖洗", "note": "中英文版本+PDF；LENT 第 18 天進度"}, {"no": "", "date": "2026-04-28", "file": "2026-04-28_LENT- Daily progress (20260428 1700LT)(完成).docx + 中文 pdf", "code": "LENT", "ship": "", "category": "其他事件", "severity": "S2-嚴重", "summary": "新加坡港作業 4/28 進度（17:00 LT）。重要時點：17:10 第 6 個 ISO Tank 裝滿、停止 #6 掃艙；18:20 結束 #5 貨艙今日清潔；19:30 結束今日作業；20:00-24:00 持續每小時測深，水位穩定（#6 PORT 0.18m / STBD 0.74m，#5 PORT 0.01m）。4/28 凌晨：00:50/01:50/02:50/03:50 連續安全巡查貨櫃無異常；04:00 起每兩小時氣體偵測 O₂ 20.9% 正常。08:40 #6 艙底吸乾與跨艙清潔（Net Line 清潔組）；09:15 #5/#6 艙蓋上方清潔；11:26 重啟 #6 抽水；11:50 暫停三項作業；12:00 測深 #6 PORT 0.15m。", "follow": "持續每日進度回報；殘水持續抽除；岸上+船上+Net Line 三方清潔組協作；下半部艙底結構評估待貨櫃清空", "keywords": "LENT、新加坡、4/28 進度、ISO Tank、清潔組、氣體偵測、安全巡查", "note": "中英文版本；LENT 案件處理中第 17 天"}, {"no": "", "date": "2026-04-27", "file": "0427長旺輪LVNG事件-PSC大連港主機(完成).txt", "code": "LVNG", "ship": "", "category": "PSC檢查", "severity": "S2-嚴重", "summary": "4/27 大連港主機後續報告。25日17:00 靠泊、26日03:00 完工、26日10:30-13:30 PSCO 三員登輪開立 4 項缺失：(1)機艙耳塞保護警示未張貼（Code 17 已當場修正）；(2)缺少 SOC FUEL OIL CONSUMPTION 2021-2023 報告（Code 17 已當場修正）；(3)110V 配電箱 T&S 相位低絕緣（Code 99，2 個月內）；(4)PIPE DUCT 水密門需現場顯示開及關（Code 99，2 個月內）。主機異常初判第二、三缸各有一隻油頭積碳卡死。", "follow": "110V 絕緣修工（2個月內）；Pipe duct 水密門指示（2個月內）；油頭積碳問題待船端詳細報告", "keywords": "PSC、大連港、110V絕緣、水密門、油頭積碳", "note": "與 0426 週報 LVNG 部分接續"}, {"no": "", "date": "2026-04-27", "file": "2026-04-27_EVER LADEN Defective item(完成).docx", "code": "LDEN", "ship": "", "category": "缺失整改", "severity": "S3-一般", "summary": "EVER LADEN Defective Items 缺失清單共 11 項以上：水尺/外板油漆申請、Bay 74 通風口濾架修補、Upper/A Deck 通風隔柵除鏽油漆、房間沙發椅與沙龍小吧檯椅清點修補、甲板前後導輪 60% 卡死需活絡、LB 21 多數燈具不亮、左右救生艇架除鏽上油、舵機房積水清潔、Bay 36/40 lashing bridge 除鏽、Bay 40/44 fluorescent 故障、CH 4/5/6 清掃。提醒：通風馬達啟動前確保 Damper 全開避免燒毀。", "follow": "船端依清單逐項整改，完成後拍照回報", "keywords": "缺失整改、油漆、通風、燈具、救生艇架", "note": ""}, {"no": "", "date": "2026-04-27", "file": "2026-04-27_LENT- Daily report (20260427)(完成).docx + 中文版 docx + pdf", "code": "LENT", "ship": "", "category": "其他事件", "severity": "S2-嚴重", "summary": "新加坡港作業關鍵進展。重要時點：09:00 重啟 6 號貨艙抽水；09:16 5 號貨艙艙底清潔；10:15 重啟 5 號抽水、暫停 6 號；10:25 重啟 6 號沖洗；13:20 5 號高壓沖洗；15:50 5 號掃艙；16:00 測深：6 號 PORT 0.42m/STBD 0.76m；5 號 PORT 0.10m/STBD 0.00cm。穩度：GM 5.28m、Trim 0.62m。共 5 個 ISO Tank（每個 20 噸）已從 5/6 號貨艙抽出。視覺巡查：6 號貨艙上半部艙壁與 cell guides 未發現受損變形，下半部待貨櫃清空後再評估。", "follow": "下半部艙底結構評估（待貨櫃清空）；殘水持續抽除", "keywords": "新加坡、抽水、清艙、高壓沖洗、艙壁巡查、GM", "note": "首次有結構視覺巡查結論"}, {"no": "", "date": "2026-04-27", "file": "2026-04-27_長洋輪(EVER OCEAN)廣東中遠船廠塢修監工報告(4)(完成).doc", "code": "OEAN", "ship": "", "category": "塢修進度", "severity": "S3-一般", "summary": "廣東中遠船廠塢修監工報告(第4份)。檔案為舊版 .doc 格式，需以 Word 開啟詳閱具體內容。從檔名得知此為塢修期間的第 4 份監工進度報告。", "follow": "請以 Word 開啟原檔詳閱具體進度與待辦事項", "keywords": "廣東中遠、塢修、第4份報告", "note": "⚠️.doc 舊格式，建議轉存 .docx"}, {"no": "", "date": "2026-04-27", "file": "2026-04-27_GENS DEAD SHIP START PROCEDURE AND CIRCUIT ANALYSIS(完成).docx", "code": "GENS", "ship": "", "category": "電氣異常", "severity": "S2-嚴重", "summary": "GENS 全船失電(Blackout)後事後分析報告。重大發現：本輪燃油供給系統設計與長榮自有船差異顯著。長榮自有船：手動氣動泵 + 應急配電盤供電 MDO 泵 雙重保險。本輪：僅一臺 EMERG MDO/MGO PUMP，跳電後自動啟動，無手動啟動按鈕。電路圖 E-34, P194。", "follow": "提報改裝可行性評估：加裝手動啟動按鈕或備援泵；建議立共案", "keywords": "Blackout、應急發電機、MDO Pump、改裝評估", "note": "重大設計缺失，跨同型船檢視"}, {"no": "", "date": "2026-04-27", "file": "2026-04-27_EVER GIFED 缺失項目(完成).docx", "code": "GFTD", "ship": "", "category": "缺失整改", "severity": "S2-嚴重", "summary": "EVER GIFTED 缺失項目共 15 項以上：醫療室藥品處置、Pipe locker room 海綿須使用 A60 防火堵料、防火門故障、EPIRB 手冊更新、可攜式滅火器月檢日期、駕駛台雨刷故障、艏推進器房應急燈故障、Oxy & Ace Room 瓶數不足、風管 mushroom heads 部分無法關閉、艏甲板開關箱破損、繫纜線保護破損、繫纜機刹車皮 B 值需調整與磨損更換、消防水龍帶箱缺扳手、救生艇電池更新日期未張貼、FFA drum 對講機非無爆型。", "follow": "安全相關項目（防火門/應急燈/滅火器/EPIRB/無爆對講機）優先；繫纜機刹車皮待備品送船更換", "keywords": "缺失整改、防火門、EPIRB、滅火器、繫纜機", "note": "含多項安全裝備缺失"}, {"no": "", "date": "2026-04-27", "file": "2026-04-27_LISM_Case_M3_Disc_Special_CN_v2(完成).docx", "code": "LISM", "ship": "", "category": "主機異常", "severity": "S2-嚴重", "summary": "LISM 第三缸排氣閥 Disc Special 漏裝事件 — 完整 Case Study 報告 v2（八節結構）。事件期間：2026/04/13~04/15（航行往墨西哥 Manzanillo）。直接原因：NO.3 缸排氣閥液壓管底部 Disc Special 漏裝，致液壓油無法建立完整工作壓力，作動器無法達成額定行程，CCU 即發 Exhaust Valve Low Stroke 警報並大量液壓油外洩。根本原因：(1)故障排除流程偏差 — 過度聚焦電子件/電氣信號，未先以「組裝完整性」為起點檢查液壓管路；(2)Shotgun（散彈）換件 — 連續 7 項備件不收斂驗證，CH34 從 10.1mA→6.4mA→0.4mA 反向發展即為訊號被誤判。處置結果：4/15 0800 4E 於曲軸箱門外地板拾獲關鍵零件、安裝後 1500 主機恢復正常，當日 73 RPM 續航。逆向驗證：6 項舊備件 (排氣閥位置感測器、MPC10、actuator 止回閥、彈簧空氣止回閥、液壓管、FIVA) 全數通過 Function Test 與 Cyclic Test，重新入庫。", "follow": "① 導入「組裝完整性→信號電氣→元件本體」三階段排故順序卡；② HCU/CCU EVENT Log 列為主機 CCU 警報必要動作；③ 「換一項、測一項；不通過即裝回」收斂原則；④ 換下備件指定棧位保留+貼標 (拆下日期/缸號/元件/原因)；⑤ 「逆向驗證」明文納入故障排除收斂程序；⑥ 排氣閥獨立磨耗列為下次塢期 critical wear item", "keywords": "LISM、Case Study、Disc Special、CCU#3、排氣閥、Shotgun 換件、逆向驗證、組裝完整性", "note": "重要 Case Study v2 — 適合公告全船隊作為訓練教材；嚴重度標示為「中 Medium」"}, {"no": "", "date": "2026-04-27", "file": "2026-04-27_LVNG_主機故障停車報告_優化版(完成).docx", "code": "LVNG", "ship": "", "category": "主機異常", "severity": "S2-嚴重", "summary": "LVNG 4/25 大連港進港主機故障停車事件 — 完整檢討報告 v2。事件：4/25 加車至 46 RPM 時 MOP 出現 CCU-2 FUEL PLUNGER STROKE TOO HIGH 警報，第二缸 PMAX/PCOM/PI 嚴重偏低、三支高壓油管均無脈動伴撞擊聲。決議返錨地維修，1133 完成搶修，1200 STATEMENT OF FACT 通報 VTS，1400 進港。靠港期間 1448-1724 第三缸再度同樣故障，F/E 後完成第三缸油頭更換。直接原因：第二與第三缸 FUEL INJECTION VALVE 內滑閥積碳卡死（第三缸並伴隨彈簧斷裂），fuel pump 背壓過大致 plunger 卡於最高位置（39.4-42.2mm，正常 13mm）。根本原因組合：(1)4/20 起改用 MGO 致系統管路碳渣脫落+MGO 潤滑性差致滑閥結碳；(2)NO.4 FO PURIFIER 故障無法淨化 MGO；(3)天津港出港 trim 近 4m，MGO Tank 底部殘水未吸出，於航行中駁運至 SERVICE TANK，多次泄放雖無水但仍進入主機系統；(4)BUFFER UNIT 自動驅氣裝置失效（A/C 油頻繁切換致瀝青蠟堆積、浮球頂起、針閥關閉驅氣通道，停車後 80-82°C 缸套水加熱使殘存 MGO 氣化、系統內氣體累積）。輪機長檢討：誤判主因為高壓油泵故障未及時 MOP 切斷單缸，致下錨停車反而造成 PSC 加班登輪。4/26 PSC 登輪檢查 16 項：除「機艙水密門開關現場無燈光指示」要求進塢比照駕駛臺改裝指示燈外，其餘均通過。", "follow": "① 未來類似主機局部故障優先評估封缸續航至靠港；② 訓練輪機部以 MOP 單缸切斷供油的標準動作；③ MGO 切換時加強過濾與泄水檢查；④ NO.4 FO PURIFIER 修復後加強淨化 MGO；⑤ MGO Tank 殘水監控標準化；⑥ BUFFER UNIT 驅氣裝置定期檢查與保養；⑦ PSC 要求項目：機艙水密門指示燈進塢改裝、E/R 3rd Deck 電梯防火證書補齊；⑧ 排氣閥相關油頭運行時數監控（76,675 hrs 累計）", "keywords": "LVNG、主機停車、油頭、FUEL PLUNGER、滑閥積碳、MGO 切換、淨油機、BUFFER UNIT、PSC", "note": "與 4/26 週報 LVNG 部分對接、為 4/25 事件的根本原因深度分析報告"}, {"no": "", "date": "2026-04-26", "file": "0426保船四課本週事件回報(完成).txt", "code": "LSTN+LENT+LVNG", "ship": "", "category": "週報彙整", "severity": "S2-嚴重", "summary": "三船續報：①LSTN 4/9 強風事件 → APR/18-19 完成綁紮橋/煙囪/艏大桅修繕，APR/22 CLASS 復檢結案，新證書 SAFCON/SE/IBWMC 至 AUG/30/2027，APR/23 海事局複查所有缺失關閉。②LENT 新加坡事件 → APR/23 抽出 8900多 m³ 消防水，CH5 Anti-Heeling pump 已委外、馬達線路檢修，CH6 燈具/110V 電線/Bilge alarm 修復，第一階段已設定。③LVNG APR/25 大連港進港時主機第二缸 FO BOOSTER stroke too high，11:30 修復、15:00 進港，4/26 PSC 開立 4 項缺失。", "follow": "LENT 第二階段船端追蹤；LVNG PSC 4 項缺失中 2 項需 2 個月內糾正", "keywords": "週報、CLASS復檢、PSC、消防水、貨櫃事件", "note": "涵蓋三艘船續報"}, {"no": "", "date": "2026-04-26", "file": "2026-04-26_LENT- Daily report (20260426)(完成).docx + 中文版 docx + pdf", "code": "LENT", "ship": "", "category": "其他事件", "severity": "S2-嚴重", "summary": "新加坡港作業續報。本日測深維持穩定：6 號貨艙 PORT 0.74-0.77m、STBD 0.74-0.75m；5 號貨艙 PORT 0.51-0.52m、STBD 約 0.05cm。整日水位變化幅度小，顯示抽水作業已接近平衡或暫停。包含 24 小時連續監測紀錄。", "follow": "繼續觀察水位變化；殘水抽除作業安排", "keywords": "新加坡、管路測深、抽水作業", "note": "中英文版本"}, {"no": "", "date": "2026-04-25", "file": "2026-04-26_LENT- Daily work progress report -DECK ENG (20260425)(完成).docx + 中文版 docx + pdf", "code": "LENT", "ship": "", "category": "其他事件", "severity": "S2-嚴重", "summary": "新加坡港停泊作業 — 4/4 抵港，貨艙進水事件處理中。當日作業：08:00 第 5、6 號貨艙管路測深；08:29 追加第 5 部 ISO 槽車抵達；08:40 清艙工班登船；後續持續每小時測深記錄。報告涵蓋甲板部+輪機部全程紀錄、ISO 槽車進度、Bilge sounding、安全許可證與氣體偵測。", "follow": "持續每日進度回報；GM/橫傾/吃水差/最大彎曲力矩監控；貨艙視覺巡查", "keywords": "新加坡、貨艙進水、管路測深、ISO 槽車", "note": "中英文版本+PDF"}, {"no": "", "date": "2026-04-25", "file": "2026-04-27_長亮輪(EVER LUCENT)青島北海船廠塢修監工報告(01)(完成).pdf", "code": "LUCT", "ship": "", "category": "塢修進度", "severity": "S3-一般", "summary": "青島北海船廠塢修監工報告(01) DAY 03。發文日 APR/25/2026。主要相關人員：經營代表張君賢、修船總管劉洋、修船主管韓義飛、船體主管董汝旺、船舶質檢馬浩然、三菱SV楊陽/柯衛濤、中塗技師馬弘韜。本輪進入塢修第 3 天，含艙蓋加強工程同步進行。", "follow": "持續監工報告；艙蓋加強工程；中塗技師塗裝進度", "keywords": "青島北海、塢修、艙蓋加強、三菱SV、中塗", "note": "監工：許昭笠、陸潔"}, {"no": "", "date": "2026-04-24", "file": "0424長傳輪LEGN訪船(完成).txt", "code": "LEGN", "ship": "", "category": "訪船報告", "severity": "S3-一般", "summary": "4/24 11:30登輪~19:30離輪。重點：(1)主機三號T/C高保大修發現轉子葉片多處擊傷，掃氣箱/排煙總管無殘留物，已用備品清潔安裝；(2)四部發電機高負載下排氣溫度超警戒值，建議排查燃燒元件→冷卻器→T/C，輪機長擬優先保養四號發電機；(3)110V 低絕緣初判遙控閥電路接地，已安排上海技師登輪；(4)電羅經高保檢查發現備件老化；(5)第二、第五大艙通風筒 X 噴漆需清除；(6)主機/發電機裂紋擬於上海年檢簽結 Outstanding；(7)脫硫控制箱因高溫常開蓋散熱建議改設置風扇；(8)變頻器機箱過濾棉提醒更換。", "follow": "T/C舊品下航次卸岸再生；四號發電機T/C保養優先；110V接地修復；上海年檢簽結裂紋；脫硫箱風扇加裝", "keywords": "訪船、T/C、發電機高溫、110V絕緣、年檢、脫硫", "note": ""}, {"no": "", "date": "2026-04-24", "file": "2026-04-24_長理輪LOGC-艏車漏油後續安排事宜(完成).pdf", "code": "LOGC", "ship": "", "category": "主機異常", "severity": "S2-嚴重", "summary": "長理輪 LOGC 艏車漏水問題維修方案討論（保船 KANG 與上海代理 J.LU 4/23-4/24 通信）。現況：上海港已卸下艏車本體（TOC260166/LOGC26C01801R1），原訂4/26送長傳輪轉回高雄之案暫緩，本體暫放琛盛車間。後續排程：PO LOGC26C01901 安排5/23天津新港水下檢查確認洩漏處；PO LOGC26C02001 安排5/29或5/31維修。儒海評估：洩漏可能為(1)槳葉密封 2天2夜、(2)前後端蓋 2天2夜、(3)軸封 2天2夜（順利）/3-4天（不順利）；整臺更換需4-5天。上海琛盛經驗較豐富：(1)槳葉密封 20小時、(2)軸封粘接 10小時、(3)整臺更換 2天。廠商建議「整臺更換」較穩妥。風險：該輪5月底回國，艏車海水侵蝕近一個月，內部可能造成鏽蝕、齒輪/鏈條卡滯。決議方向：以本體交換後再生為主要方案。墊片料號待處理：30 Blade seal ring×4 與 132 Locking Bar×16 未建立料號；91 O-ring×24（THRU.0101.228 已有24）與92 O-ring×8（THRU.0101.229 已有8）已備齊。", "follow": "① 確認錨地施工可行性（裝貨碼頭施工時間恐不足）；② 5/23 天津新港水下檢查；③ 5/29 或 5/31 維修排程（碼頭 or 錨地、軸封沾黏 or 本體更換 由儒海評估）；④ 墊片料號 30、132 建立；⑤ 內部系統換油徹底執行（即使僅換密封）", "keywords": "LOGC、艏車、漏油、漏水、軸封、本體更換、琛盛、儒海、墊片料號", "note": "Email串：康懷元 ↔ 陸潔；本體交換為主方向"}, {"no": "", "date": "2026-04-23", "file": "2026-04-27_長茂輪(EVER LIVELY)青島北海船廠塢修監工報告(03)(完成).pdf", "code": "LIVY", "ship": "", "category": "塢修進度", "severity": "S3-一般", "summary": "青島北海船廠塢修監工報告(03) DAY 09。發文日 APR/23/2026。主要相關人員：經營代表張君賢、修船總管劉洋、修船主管韓義飛/趙培成、船體主管(同艙蓋加強)賀立征、船舶質檢馬浩然、三菱SV夏茂高。本輪進入 DAY 09，含艙蓋加強工程同步進行。", "follow": "持續每週回傳監工報告；艙蓋加強工程進度追蹤", "keywords": "青島北海、塢修、艙蓋加強、三菱SV", "note": "監工：華庭瑤、吳杰"}, {"no": "", "date": "2026-04-23", "file": "2026-04-23_LISM Main Engine CCU 3 Data (CLARIFICATION)(完成).pdf", "code": "LISM", "ship": "", "category": "主機異常", "severity": "S2-嚴重", "summary": "LISM 主機 CCU#3 第三缸排氣閥低行程警報事件 - 結案釐清。事件時間軸：4/13 18:00 LT 警報+液壓油洩漏；依序更換感測器/總成/執行器/MPC10 主機板，CH34 從 10.1mA→6.4mA 仍報警；4/14 13:00 聯絡總部後再換 actuator non-return valve/Spring air non-return valve/液壓管/FIVA Valve，CH34 達 0.4mA；4/15 08:00 4E 經過曲軸箱門時於 #3 氣缸前發現遺失 Disc Special，拆開排氣閥管路底部確認漏裝，安裝後 15:00 主機恢復正常。根本原因：第三缸排氣閥液壓管底部 Disc Special 漏裝（最可能在 A.4 更換 actuator 時遺漏）。4/23 CE 回報依公司指示將舊備件全部換回，功能測試正常，所有原備件均完好。", "follow": "① 寫成 Case Study 公告全船隊：強調拆裝主機液壓管時 Disc Special 必須清點；② 6 項備件已驗證完好可入庫；③ 檢討維修 SOP 確保零件回裝。", "keywords": "LISM、主機、CCU、第三缸、排氣閥、Disc Special、FIVA、MPC10", "note": "Email：CE SORIANO ↔ 姚勝薰；4/23 CE 確認舊件回裝正常"}, {"no": "", "date": "2026-04-22", "file": "0422長寶輪LGCY事件-主機第四缸高溫報警(完成).txt", "code": "LGCY", "ship": "", "category": "主機異常", "severity": "S2-嚴重", "summary": "（檔案空白）僅由檔名得知「主機第四缸高溫報警」，待船端補充詳細內容。", "follow": "請船端補充詳細報告，含警報時間、處理、是否已排除", "keywords": "主機、高溫報警、第四缸", "note": "⚠️空白檔，待補登"}, {"no": "", "date": "2026-04-21", "file": "0421長滿輪LDEN訪船(完成).txt", "code": "LDEN", "ship": "", "category": "訪船報告", "severity": "S3-一般", "summary": "4/21 21:00登輪~4/22 10:30離船。常規檢查正常：20項備品抽點與系統相符；鍋爐水質、低/高溫水化驗值正常；ICCP MGPS 正常；無保固未結案。需追蹤：保固逾期工單共2筆需管理宣導；440V 絕緣偏低（110V/24V 正常）；綁紮橋已有反銹（中層綁紮橋已鏽蝕，最上層因有橡膠墊狀況良好）；機艙整體環境良好但有部分報廢備品尚未卸岸；貨艙 smoke detector 未建立備品庫，已請系統課開放讓船上緊急申請。", "follow": "440V 絕緣後續追蹤；報廢備品卸岸；smoke detector 備品庫建立", "keywords": "訪船、絕緣、綁紮橋、備品", "note": ""}, {"no": "", "date": "2026-04-21", "file": "2026-04-21_GENT 第3艘 G-TYPE 買回作業計畫(完成).pdf", "code": "GENT", "ship": "", "category": "其他事件", "severity": "S3-一般", "summary": "5 艘 G-Type 租船買回作業計畫 — 第 3 艘 EVER GENTLE 流程說明。EVER GENTLE 0796-027E：Liberia 旗、ABS 船級；ETA SGP 4/27 12:00 LT；簽約日 4/30。四階段時程：(A) 4/27 12:00-14:00 Pasir Panjang Terminal 27 號泊位左舷靠泊（單靠，30 小時 cargo operation）；(B) 4/28 22:00~4/29 06:00 AEHB 錨地 UWI 水下檢查（MPA 規定流速<1.0kts）；(C) 4/30 02:00-04:00 Tuas Terminal 左舷靠泊 Layby（換班接管、Mobile Crane、修理改裝、衛星通訊、年檢、CLASS/MPA 認證）；(D) 5/3 04:00-08:00 Anchorage 熱工 + 救生艇 davit swing out 測試。船端配合：航速控制以準時抵港、到港吃水 12.5-13.0m。整體 5 艘進度：1st GIFTED (1/14)、2nd GENIUS (1/26) 已完成；3rd GENTLE (4/30) 進行中；4th GOVERN (Jul/23)、5th GREET (Oct/28) 後續排程。", "follow": "① 4/27 抵港船速控制；② 4/28-29 UWI 水下檢查確認流速<1.0kts；③ 4/30 簽約+Layby（換班/修改裝/年檢/CLASS-MPA 認證）；④ 5/3 熱工+救生艇 davit 測試；⑤ Tuas 必須左舷靠；⑥ 後續 GOVERN(7月)、GREET(10月) 排程", "keywords": "GENT、長雅輪、買回作業、G-Type、新加坡、UWI、Layby、Tuas、CLASS、MPA", "note": "戰略級營運轉換；保船工作交接（蔡百彥→Rex Tu）"}, {"no": "", "date": "2026-04-29", "file": "0429長洋輪OEAN出塢離廠(完成).txt", "code": "OEAN", "ship": "", "category": "塢修進度", "severity": "S3-一般", "summary": "長洋輪 OEAN 於廣州中遠船廠完成 5 年塢修檢驗離廠回報。(1) APR/29 11:40 領港登輪，該輪完成清關並開航投入 NSB 航線；(2) 油品課安排先於 APR/29 香港添加燃油，ETA 04/29 17:00；(3) 第一個碼頭到靠時間預排為 APR/30 HKHKG（香港）；(4) 以上訊息已同步通知運務主作。", "follow": "① APR/29 17:00 香港添加燃油作業；② APR/30 HKHKG 碼頭到靠順利確認；③ 後續觀察 NSB 航線運轉狀況；④ 5 年塢修工項結案文件歸檔（OEAN 廣東中遠塢修系列）", "keywords": "OEAN、長洋輪、出塢、離廠、廣州中遠、5年塢修、NSB航線、香港", "note": "塢修閉環完成；4/27 OEAN 第4份監工報告之收尾"}, {"no": "", "date": "2026-04-30", "file": "0430案例-O型船主機鋼頭螺絲(完成).txt", "code": "O-TYPE", "ship": "", "category": "主機異常", "severity": "S2-嚴重", "summary": "（檔案空白）僅由檔名得知「O 型船主機鋼頭螺絲」相關案例。可能涉及 O 型船 4 艘（OENT 長旭、OEAN 長洋、OASI 長澤、ORDR 長順）的主機鋼頭螺絲共通議題。", "follow": "請船端補充詳細案例內容：哪艘船發生、螺絲問題類型（鬆脫/斷裂/規格錯誤）、處理對策、是否需跨同型船檢視", "keywords": "O型、主機、鋼頭螺絲、案例研究、跨船型", "note": "⚠️ 空白檔，待補登；可能為跨船型共通案例"}, {"no": "", "date": "2026-04-30", "file": "0430長雅輪GENT新加坡簽約交船(完成).txt", "code": "GENT", "ship": "", "category": "其他事件", "severity": "S3-一般", "summary": "（檔案空白）僅由檔名得知「4/30 長雅輪 GENT 在新加坡簽約交船」。對應 4/21 第 3 艘 G-Type 買回作業計畫之 (C) Layby 階段執行（4/30 02:00-04:00 Tuas Terminal 左舷靠泊、簽約 + 換班接管 + 修理改裝 + 衛星通訊 + 年檢 + CLASS/MPA 認證）。", "follow": "① 確認簽約完成；② 確認 (C) Layby 階段所有工項到位（Mobile Crane、修改裝、年檢、CLASS/MPA）；③ 後續 (D) 5/3 04:00-08:00 錨地熱工 + 救生艇 davit 測試準備", "keywords": "GENT、長雅輪、簽約、交船、新加坡、買回作業、Phase C、Tuas Terminal", "note": "⚠️ 空白檔，待補登實際簽約細節；對應 4/21 買回計畫"}, {"no": "", "date": "2026-04-30", "file": "0430長頌輪LRIC電機OMD(完成).txt", "code": "LRIC", "ship": "", "category": "電氣異常", "severity": "S3-一般", "summary": "長頌輪 LRIC 電機 OMD（GE 油霧偵測器）異常通報：膠圈硬化，從進出口氣道與底板平面處滲入。請船員注意檢查 GE OMD 電機油霧偵測器。", "follow": "① 訂購新膠圈備品（建議全部 OMD 端口全套更換）；② 檢查其他同型船 GE OMD 是否有相同膠圈硬化老化問題；③ 短期觀察滲入嚴重度，若影響偵測準確度需立即停機處理", "keywords": "LRIC、長頌輪、GE OMD、油霧偵測器、膠圈、硬化", "note": "船員回報事項；建議跨同型船檢視 OMD 膠圈狀態"}, {"no": "", "date": "2026-04-30", "file": "2026-04-30_LENT- Daily progress (20260430 1700LT)(完成).docx + 中文 docx + pdf", "code": "LENT", "ship": "", "category": "其他事件", "severity": "S2-嚴重", "summary": "新加坡港作業 4/30 進度（17:00 LT）— LENT 案件處理中第 19 天。重要時點：08:00 #6 PORT 0.26m / STBD 0.03m，#5 PORT 0.19m / STBD 0.00m，氣體偵測 O₂ 20.9% 正常；09:35 重啟 #6 抽水；10:00 #6 PORT 0.03m / STBD 0.03m（顯著下降）；13:28 #5 高壓沖洗；14:10 暫停 #5 沖洗；14:17 Net Line 人員固定高壓沖洗設備於甲板；16:20 開始降雨；17:00 #6 PORT 0.03m / STBD 0.10m，#5 PORT 0.29m / STBD 0.00m。穩度監控：GM 5.27m、Trim 0.60m、List 0.0°、BM 67%、SF 77%（在港）。氣體安全：已完成風險評估、核發工作許可證、進艙前以鼓風機通風。**視覺巡查重要結論**：艙壁（Bulkhead）與導軌（Cell Guides）均未觀察到任何受損或變形。等待 #5、#6 貨艙內剩餘貨櫃完成卸船後，再行視覺檢查艙底（Tank Top）以及其他先前由貨櫃覆蓋之部位狀況。累計仍維持 6 個 ISO Tank 滿載已抽出。", "follow": "① 等剩餘貨櫃卸船後檢查 Tank Top 與覆蓋部位；② #5 殘水持續抽除（PORT 0.29m）；③ #6 高壓沖洗收尾；④ 殘水穩度監控持續", "keywords": "LENT、新加坡、4/30、艙壁巡查、cell guides、Tank Top、ISO Tank、降雨", "note": "中英文版本+PDF；首份完整視覺巡查結論：艙壁與導軌未變形（重要里程碑）"}, {"no": "30", "date": "2026-05-01", "file": "2026-05-01_LENT- Daily work progress report -DECK  ENG (20260501 - 0700LT)(完成).docx", "code": "LENT", "ship": "長慈輪 EVER LENIENT", "category": "工作報告", "severity": "S3-一般", "summary": "LENT 長慈輪 (新加坡港) APR/12 抵港，05/01 0700LT 每日工作進度報告 (DECK/ENG)。(1) C/H No.5、6 目前無卸貨作業；結構 CELL GUIDES、艙壁無變形/損傷。(2) C/H No.4 損壞之 Anti-Heeling Pump 已安裝測試 (P 100%) 正常運轉。(3) C/H No.5 Anti-Heeling Pump/Motor 維修 (P 15%) — 等待整新後之 pump/motor (案號 LENT26S05101 詢問中)；纜線維修 (P 30%) 計畫安裝 junction box 替換受損段。(4) C/H No.5 燈具進水接線替換 3 pcs，絕緣已測；C/H No.6 燈具及接線替換 (P 70%) — 18 pcs 已完成、纜線 250m 已替換。(5) C/H No.5、No.6 Bilge Well 警報 sensor 維修 (P 40%)；Bilge Well 清洗持續 (Netline 承辦)。(6) Anti-Heeling Pump 整修案 (LENT26C00901) — Pump/Motor 已送岸，等待整新返船。", "follow": "① LENT26S05101 備品到貨 (Heeling Pump 馬達/Actuator) — Querying 中需追蹤；② Anti-Heeling Pump 整新 motor 到貨後安裝測試；③ C/H No.5、No.6 cargo hold 結構 survey (尚未開始)；④ G/E Cylinder Head 整修持續；⑤ ME Cyl. No.4 噴油閥替換 (RH Due 5954)；⑥ 岸上人員完成清艙作業後 5、6 號艙蓋復位。", "keywords": "LENT、長慈輪、Anti-Heeling Pump、Bilge Well、SINGAPORE、LENT26S05101、LENT26C00901、CH5、CH6、Daily Report", "note": "新加坡港停泊維修；下一個工作日報於翌日提交"}, {"no": "31", "date": "2026-05-01", "file": "0501-長雅輪GENT新加坡簽約交船事件簿(完成).txt", "code": "GENT", "ship": "長雅輪 EVER GENTLE", "category": "缺失", "severity": "S2-嚴重", "summary": "GENT 長雅輪於 04/30 上午新加坡時間 10:20 正式接船購入。(1) 計畫主機吊缸完成後，爭取 05/02 2100 移錨地、05/04 2000 離港；(2) Anchor Chain Stopper 議題：賣方寄錯備品，左舷規格被裝在右舷。雖已就地安裝，但擔心 PSC 介入；已請新加坡 Surveyor 登輪檢驗並開立 Outstanding；(3) Class ABS 驗船師要求船東正式向廠家詢問，需取得 Maker Guidance — 若原廠回覆可，右邊備品才允許裝在右舷；(4) 賣方已下訂正確規格 Stopper，預計交貨 3 個月，後續配合船期排定安裝計畫。", "follow": "① Surveyor 登輪檢驗報告 (Outstanding 開立)；② ABS 廠家 Maker Guidance 文件取得；③ 主機吊缸完工 → 05/02 2100 移錨地 → 05/04 2000 離港；④ 正確 Stopper 備品到貨追蹤（預計 3 個月）；⑤ 安排正確規格 Stopper 安裝計畫（依船期）。", "keywords": "GENT、長雅輪、接船、新加坡、Anchor Chain Stopper、PSC、ABS、Maker Guidance、吊缸、Outstanding", "note": "新接船後首份重要追蹤；同步建事件以追蹤 Stopper PSC 風險"}], "weekly": [{"no": "1", "date": "2026-05-01", "period": "2026-04-27 ~ 2026-05-03", "events": "新增 7 / 結案 0", "projects": "塢修中 2 / 進廠 0 / 離廠 1", "maintenance": "CLASS 逾期 3 / 30日內 5 | 待出帳 5", "next_week": "下週進廠 2 艘 | S1+S2 追蹤 8", "link": "20260427_第18週週報.docx", "note": "自動產生 2026-05-01"}], "stats": {"total_ships": 39, "type_count": {"L": 30, "O": 4, "G": 5}, "events_total": 14, "events_pending": 4, "events_inprogress": 8, "events_closed": 2, "events_s1": 0, "events_s2": 8, "events_s3_open": 4, "summaries_total": 31, "drydock_total": 19, "weekly_total": 1, "class_total": 14, "class_overdue": 3, "class_30": 5, "class_90": 4, "class_track": 2, "class_data_as_of": "2026-04-30", "dd_past_total": 8, "dd_pay_pending": 5, "dd_bill_pending": 1, "gen_time": "2026-05-01 06:00"}};
+
+const $ = (sel) => document.querySelector(sel);
+const escapeHtml = (s) => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+const highlight = (s, q) => {
+  s = escapeHtml(s);
+  if (!q) return s;
+  const tokens = q.split(/\s+/).filter(t => t);
+  for (const t of tokens) {
+    if (t.length < 1) continue;
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    s = s.replace(re, '<mark>$1</mark>');
+  }
+  return s;
+};
+
+// === 計算單筆塢修狀態 ===
+function calcDDStatus(d) {
+  if (!d.in_date || !d.out_date) return { status: '資料不全', daysFromNow: null };
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const inD = new Date(d.in_date);
+  const outD = new Date(d.out_date);
+  const day = 24*60*60*1000;
+  if (today < inD) return { status: '未進廠', daysFromNow: Math.ceil((inD - today)/day) };
+  if (today <= outD) return { status: '塢修中', daysFromNow: Math.ceil((outD - today)/day) };
+  return { status: '已離廠', daysFromNow: Math.ceil((today - outD)/day) };
+}
+
+// === 計算每艘船的『代表性塢修狀態』（用於頂層篩選+顯示徽章）===
+function calcShipDDState(ship) {
+  if (!ship.drydocks || ship.drydocks.length === 0) {
+    return { status: '無排程', daysFromNow: null, primary: null };
+  }
+  const enriched = ship.drydocks.map(d => ({...d, _calc: calcDDStatus(d)}));
+  // 優先序：塢修中 > 未進廠（最近）> 已離廠（最近）
+  const inDock = enriched.filter(d => d._calc.status === '塢修中');
+  if (inDock.length > 0) return { status: '塢修中', daysFromNow: inDock[0]._calc.daysFromNow, primary: inDock[0] };
+  const future = enriched.filter(d => d._calc.status === '未進廠').sort((a,b) => a._calc.daysFromNow - b._calc.daysFromNow);
+  if (future.length > 0) return { status: '未進廠', daysFromNow: future[0]._calc.daysFromNow, primary: future[0] };
+  const past = enriched.filter(d => d._calc.status === '已離廠').sort((a,b) => a._calc.daysFromNow - b._calc.daysFromNow);
+  if (past.length > 0) return { status: '已離廠', daysFromNow: past[0]._calc.daysFromNow, primary: past[0] };
+  return { status: '無排程', daysFromNow: null, primary: null };
+}
+
+// === KPI 點擊跳轉 ===
+function _gotoTab(tab) {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`nav.tabs button[data-tab="${tab}"]`);
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('section.section').forEach(s => s.classList.add('hidden'));
+  const sec = document.querySelector('#' + tab);
+  if (sec) sec.classList.remove('hidden');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+function _clearShipFilters() {
+  shipState.q = '';
+  shipState.types.clear();
+  shipState.ddStatuses.clear();
+  shipState.ciStatuses.clear();
+  shipState.payStatuses.clear();
+  document.querySelectorAll('#ships .chip').forEach(c => c.classList.remove('active'));
+  const sb = document.querySelector('#searchShips');
+  if (sb) sb.value = '';
+}
+function _clearEventFilters() {
+  eventState.q = '';
+  eventState.sevs.clear();
+  eventState.statuses.clear();
+  eventState.ship = '';
+  document.querySelectorAll('#events .chip').forEach(c => c.classList.remove('active'));
+  const sb = document.querySelector('#searchEvents');
+  if (sb) sb.value = '';
+  const sel = document.querySelector('#shipSelectEvents');
+  if (sel) sel.value = '';
+}
+function _activateChip(scope, predicate) {
+  document.querySelectorAll(`${scope} .chip`).forEach(c => {
+    if (predicate(c)) c.classList.add('active');
+  });
+}
+
+function applyKpiAction(action) {
+  switch (action) {
+    case 'all_ships':
+      _clearShipFilters();
+      _gotoTab('ships');
+      renderShips();
+      break;
+    case 'all_events':
+      _clearEventFilters();
+      _gotoTab('events');
+      renderEvents();
+      break;
+    case 's1s2_open':
+      _clearEventFilters();
+      eventState.sevs.add('S1-緊急');
+      eventState.sevs.add('S2-嚴重');
+      eventState.statuses.add('開放中');
+      _activateChip('#events', c => ['S1-緊急','S2-嚴重'].includes(c.dataset.sev) || c.dataset.status === '開放中');
+      _gotoTab('events');
+      renderEvents();
+      break;
+    case 'open_events':
+      _clearEventFilters();
+      eventState.statuses.add('開放中');
+      _activateChip('#events', c => c.dataset.status === '開放中');
+      _gotoTab('events');
+      renderEvents();
+      break;
+    case 's3_open':
+      _clearEventFilters();
+      eventState.sevs.add('S3-一般');
+      eventState.statuses.add('開放中');
+      _activateChip('#events', c => c.dataset.sev === 'S3-一般' || c.dataset.status === '開放中');
+      _gotoTab('events');
+      renderEvents();
+      break;
+    case 'in_dock':
+      _clearShipFilters();
+      shipState.ddStatuses.add('塢修中');
+      _activateChip('#ships', c => c.dataset.dd === '塢修中');
+      _gotoTab('ships');
+      renderShips();
+      break;
+    case 'future_30':
+      _clearShipFilters();
+      shipState.ddStatuses.add('30日內進廠');
+      _activateChip('#ships', c => c.dataset.dd === '30日內進廠');
+      _gotoTab('ships');
+      renderShips();
+      break;
+    case 'pay_pending':
+      _clearShipFilters();
+      shipState.payStatuses.add('待付款');
+      _activateChip('#ships', c => c.dataset.pay === '待付款');
+      _gotoTab('ships');
+      renderShips();
+      break;
+    case 'bill_pending':
+      _clearShipFilters();
+      shipState.payStatuses.add('帳單未開');
+      _activateChip('#ships', c => c.dataset.pay === '帳單未開');
+      _gotoTab('ships');
+      renderShips();
+      break;
+    case 'ci_overdue':
+      _clearShipFilters();
+      shipState.ciStatuses.add('逾期');
+      _activateChip('#ships', c => c.dataset.ci === '逾期');
+      _gotoTab('ships');
+      renderShips();
+      break;
+    case 'ci_30':
+      _clearShipFilters();
+      shipState.ciStatuses.add('30日內');
+      _activateChip('#ships', c => c.dataset.ci === '30日內');
+      _gotoTab('ships');
+      renderShips();
+      break;
+  }
+}
+window.applyKpiAction = applyKpiAction;
+
+// === 儀表板 ===
+function renderDashboard() {
+  const s = DATA.stats;
+  // 計算塢修中艘數
+  const inDockCount = DATA.ships.filter(sh => calcShipDDState(sh).status === '塢修中').length;
+  const futureSoonCount = DATA.ships.filter(sh => {
+    const st = calcShipDDState(sh);
+    return st.status === '未進廠' && st.daysFromNow <= 30;
+  }).length;
+  const kpis = [
+    { label: "管轄船舶", value: s.total_ships, theme: "blue", action: "all_ships" },
+    { label: "事件總數", value: s.events_total, theme: "teal", action: "all_events" },
+    { label: "🚨 緊急嚴重事件", value: s.events_s1 + s.events_s2, theme: "red", critical: true, action: "s1s2_open" },
+    { label: "🔄 一般事件", value: s.events_s3_open, theme: "orange", critical: true, action: "s3_open" },
+    { label: "🔧 塢修中", value: inDockCount, theme: "purple", critical: true, action: "in_dock" },
+    { label: "⏰ 30天內進廠", value: futureSoonCount, theme: "indigo", critical: true, action: "future_30" },
+    { label: "💰 待出帳", value: s.dd_pay_pending, theme: "gold", critical: true, action: "pay_pending" },
+    { label: "💳 77P未維護", value: s.dd_bill_pending, theme: "brown", critical: true, action: "bill_pending" },
+    { label: "⚠️ CLASS逾期", value: s.class_overdue, theme: "crimson", critical: true, action: "ci_overdue" },
+    { label: "📅 CLASS 30日", value: s.class_30, theme: "cyan", critical: true, action: "ci_30" },
+  ];
+  $('#kpiGrid').innerHTML = kpis.map(k => {
+    const muted = (k.critical && k.value === 0) ? ' kpi-zero' : '';
+    return `<div class="kpi theme-${k.theme}${muted} clickable" onclick="applyKpiAction('${k.action}')">
+       <div class="label">${k.label}</div>
+       <div class="value">${k.value}</div>
+       <div class="kpi-arrow">→</div>
+     </div>`;
+  }).join('');
+
+}
+
+// === 船舶 / 塢修（合併）===
+const shipState = { q: '', types: new Set(), ddStatuses: new Set(), ciStatuses: new Set(), payStatuses: new Set() };
+
+// 計算單筆塢修是否『已離廠』
+function _ddIsPast(d) {
+  if (!d.out_date) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return new Date(d.out_date) < today;
+}
+
+function matchShip(s) {
+  if (shipState.types.size > 0 && !shipState.types.has(s.type)) return false;
+  if (shipState.ddStatuses.size > 0) {
+    const ddSt = calcShipDDState(s);
+    let ok = false;
+    for (const d of shipState.ddStatuses) {
+      if (d === '30日內進廠') {
+        if (ddSt.status === '未進廠' && ddSt.daysFromNow != null && ddSt.daysFromNow <= 30) ok = true;
+      } else if (ddSt.status === d) {
+        ok = true;
+      }
+    }
+    if (!ok) return false;
+  }
+  if (shipState.ciStatuses.size > 0) {
+    const ci = s.class_items || [];
+    const has = (st) => ci.some(it => it.status === st);
+    let ok = false;
+    if (shipState.ciStatuses.has('逾期') && has('逾期')) ok = true;
+    if (shipState.ciStatuses.has('30日內') && has('30日內')) ok = true;
+    if (shipState.ciStatuses.has('any') && ci.length > 0) ok = true;
+    if (!ok) return false;
+  }
+  if (shipState.payStatuses.size > 0) {
+    const past = (s.drydocks || []).filter(_ddIsPast);
+    let ok = false;
+    if (shipState.payStatuses.has('待付款') && past.some(d => d.payment !== '完成')) ok = true;
+    if (shipState.payStatuses.has('帳單未開') && past.some(d => d.bill !== '完成')) ok = true;
+    if (!ok) return false;
+  }
+  if (shipState.q) {
+    const ddText = (s.drydocks || []).map(d =>
+      [d.year, d.shipyard, d.primary, d.secondary, d.chief, d.in_date, d.out_date, d.note, d.po, d.bill, d.payment].join(' ')
+    ).join(' ');
+    const ciText = (s.class_items || []).map(it =>
+      [it.cls, it.id, it.cert, it.due, it.plan, it.finding].join(' ')
+    ).join(' ');
+    const text = [s.code, s.cn_name, s.en_name, s.class, s.owner,
+                  s.pic_baoshan, s.pic_caigou, s.pic_haiji, s.note, ddText, ciText].join(' ').toLowerCase();
+    return shipState.q.toLowerCase().split(/\s+/).every(t => text.includes(t));
+  }
+  return true;
+}
+
+function renderShips() {
+  // 排序優先序：Class 逾期 > 塢修中 → 30 天內進廠 → 其他未進廠 → 已離廠 → 無排程
+  const enriched = DATA.ships.map(s => {
+    const ci = s.class_items || [];
+    const ciOverdue = ci.filter(x => x.status === '逾期').length;
+    const ci30 = ci.filter(x => x.status === '30日內').length;
+    return {...s, _dd: calcShipDDState(s), _ciOverdue: ciOverdue, _ci30: ci30};
+  });
+  const order = { '塢修中': 0, '未進廠': 1, '已離廠': 2, '無排程': 3 };
+  enriched.sort((a, b) => {
+    // Class 逾期優先
+    if ((a._ciOverdue > 0) !== (b._ciOverdue > 0)) return a._ciOverdue > 0 ? -1 : 1;
+    if (a._ciOverdue !== b._ciOverdue) return b._ciOverdue - a._ciOverdue;
+    // 30 日內到期次之
+    if ((a._ci30 > 0) !== (b._ci30 > 0)) return a._ci30 > 0 ? -1 : 1;
+    // 然後依塢修狀態
+    const oa = order[a._dd.status];
+    const ob = order[b._dd.status];
+    if (oa !== ob) return oa - ob;
+    if (a._dd.status === '未進廠') return a._dd.daysFromNow - b._dd.daysFromNow;
+    if (a._dd.status === '已離廠') return a._dd.daysFromNow - b._dd.daysFromNow;
+    return (a.code || '').localeCompare(b.code || '');
+  });
+
+  const filtered = enriched.filter(matchShip);
+  $('#shipCount').textContent = `${filtered.length} / ${DATA.ships.length}`;
+  if (filtered.length === 0) {
+    $('#shipList').innerHTML = '<div class="empty"><div class="icon">🔍</div>沒有符合的船舶</div>';
+    return;
+  }
+
+  $('#shipList').innerHTML = filtered.map(s => {
+    const dd = s._dd;
+    let cardCls = '';
+    let badgeCls = 't-dd-none';
+    let badgeText = '— 無塢修排程';
+    if (dd.status === '塢修中') {
+      cardCls = 'dd-active';
+      badgeCls = 't-dd-active';
+      badgeText = `🔧 塢修中 距離廠 ${dd.daysFromNow} 天`;
+    } else if (dd.status === '未進廠') {
+      if (dd.daysFromNow <= 30) {
+        cardCls = 'dd-future-soon';
+        badgeCls = 't-dd-future-soon';
+        badgeText = `📅 ${dd.daysFromNow} 天內進廠`;
+      } else {
+        cardCls = 'dd-future';
+        badgeCls = 't-dd-future';
+        badgeText = `📅 ${dd.daysFromNow} 天後進廠`;
+      }
+    } else if (dd.status === '已離廠') {
+      badgeCls = 't-dd-past';
+      badgeText = `✓ 已離廠 ${dd.daysFromNow} 天`;
+    }
+
+    const tType = s.type ? `<span class="tag t-${s.type.toLowerCase()}">${s.type}</span>` : '';
+
+    // 排序此船的所有塢修：依進廠日 desc
+    const ddSorted = [...(s.drydocks || [])].sort((a, b) => (b.in_date || '').localeCompare(a.in_date || ''));
+
+    const ddBlock = ddSorted.length > 0 ? `
+      <div class="dd-section">
+        <div class="dd-title">🛠 塢修排程（${ddSorted.length} 筆）</div>
+        <div class="dd-list">
+          ${ddSorted.map(d => {
+            const c = calcDDStatus(d);
+            let itemCls = 'past', tagCls = 't-dd-past', label = '已離廠';
+            if (c.status === '塢修中') { itemCls = 'cur'; tagCls = 't-dd-active'; label = '塢修中'; }
+            else if (c.status === '未進廠') {
+              if (c.daysFromNow <= 30) { itemCls = 'fut-soon'; tagCls = 't-dd-future-soon'; label = `${c.daysFromNow}天內`; }
+              else { itemCls = 'fut'; tagCls = 't-dd-future'; label = '未進廠'; }
+            }
+            return `
+            <div class="dd-item ${itemCls}">
+              <div class="dd-row1">
+                <span class="tag ${tagCls}">${label}</span>
+                ${d.year ? `<span class="tag t-cat">${escapeHtml(d.year)}</span>` : ''}
+                ${d.in_date ? `<span class="tag t-date">${escapeHtml(d.in_date)} → ${escapeHtml(d.out_date || '')}</span>` : ''}
+                ${d.days ? `<span class="tag t-cat">${escapeHtml(d.days)} 天</span>` : ''}
+              </div>
+              <div class="dd-row2">
+                ${d.shipyard ? `<b>船廠</b> ${highlight(d.shipyard, shipState.q)}　` : ''}
+                ${d.primary ? `<b>主修</b> ${highlight(d.primary, shipState.q)}　` : ''}
+                ${d.secondary ? `<span class="sub"><b>輔修</b> ${highlight(d.secondary, shipState.q)}　</span>` : ''}
+                ${d.chief ? `<span class="sub"><b>主管</b> ${escapeHtml(d.chief)}</span>` : ''}
+              </div>
+              <div class="dd-row3">
+                ${d.po ? `<span class="dd-badge dd-badge-po">📋 PO ${highlight(d.po, shipState.q)}</span>` : ''}
+                ${d.bill ? `<span class="dd-badge ${d.bill === '完成' ? 'dd-badge-done' : 'dd-badge-pending'}">💳 77P ${escapeHtml(d.bill)}</span>` : ''}
+                ${d.payment ? `<span class="dd-badge ${d.payment === '完成' ? 'dd-badge-done' : 'dd-badge-pending'}">💰 出帳 ${escapeHtml(d.payment)}</span>` : ''}
+              </div>
+              ${d.note ? `<div style="margin-top:4px;color:#666;font-size:12px;">📝 ${escapeHtml(d.note)}</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>` : '';
+
+    // 顯示在標題下方的塢修速覽（取『最佳匹配』那筆）
+    const primary = dd.primary;
+    let ddSummary = '';
+    if (primary) {
+      const parts = [];
+      if (primary.shipyard) parts.push(`<span class="ddh-item"><span class="ddh-label">船廠</span> ${highlight(primary.shipyard, shipState.q)}</span>`);
+      if (primary.primary) parts.push(`<span class="ddh-item"><span class="ddh-label">主修</span> ${highlight(primary.primary, shipState.q)}</span>`);
+      if (primary.secondary) parts.push(`<span class="ddh-item"><span class="ddh-label">輔修</span> ${highlight(primary.secondary, shipState.q)}</span>`);
+      if (parts.length > 0) {
+        ddSummary = `<div class="dd-head-summary">${parts.join('<span class="ddh-sep">｜</span>')}</div>`;
+      }
+    }
+
+    // === Class Items 統計與速覽 ===
+    const ci = s.class_items || [];
+    const ciCounts = { '逾期': 0, '30日內': 0, '90日內': 0, '追蹤中': 0 };
+    ci.forEach(it => { if (ciCounts.hasOwnProperty(it.status)) ciCounts[it.status]++; });
+    const hasOverdue = ciCounts['逾期'] > 0;
+    const has30 = ciCounts['30日內'] > 0;
+
+    // 邊框優先序：Class 逾期 > 塢修中 > 30日內進廠 > 未進廠
+    let cardClsFinal = cardCls;
+    if (hasOverdue) cardClsFinal = 's1';  // 重用 S1 紅色邊框
+
+    let ciSummary = '';
+    if (ci.length > 0) {
+      const ciParts = [];
+      if (ciCounts['逾期']) ciParts.push(`<span class="cih-tag cih-overdue">⚠️ 逾期 ${ciCounts['逾期']}</span>`);
+      if (ciCounts['30日內']) ciParts.push(`<span class="cih-tag cih-30">📅 30日內 ${ciCounts['30日內']}</span>`);
+      if (ciCounts['90日內']) ciParts.push(`<span class="cih-tag cih-90">🔔 90日 ${ciCounts['90日內']}</span>`);
+      if (ciCounts['追蹤中']) ciParts.push(`<span class="cih-tag cih-track">👁 追蹤 ${ciCounts['追蹤中']}</span>`);
+      ciSummary = `<div class="ci-head-summary">${ciParts.join('')}</div>`;
+    }
+
+    // === Class Items 完整列表 ===
+    const ciSorted = [...ci].sort((a, b) => (a.due || '').localeCompare(b.due || ''));
+    const ciBlock = ciSorted.length > 0 ? `
+      <div class="ci-section">
+        <div class="ci-title">⚠️ 船級待解事項（${ciSorted.length} 筆，資料日期 ${escapeHtml(DATA.stats.class_data_as_of || '—')}）</div>
+        <div class="ci-list">
+          ${ciSorted.map(it => {
+            let itemCls = 'track', tagCls = 'cih-track', label = it.status;
+            if (it.status === '逾期') { itemCls = 'overdue'; tagCls = 'cih-overdue'; }
+            else if (it.status === '30日內') { itemCls = 'd30'; tagCls = 'cih-30'; }
+            else if (it.status === '90日內') { itemCls = 'd90'; tagCls = 'cih-90'; }
+            return `
+            <div class="ci-item ${itemCls}">
+              <div class="ci-row1">
+                <span class="cih-tag ${tagCls}">${escapeHtml(label)}</span>
+                ${it.cls ? `<span class="tag t-cat">${escapeHtml(it.cls)}</span>` : ''}
+                ${it.id ? `<span class="tag t-code">${escapeHtml(it.id)}</span>` : ''}
+                ${it.cert ? `<span class="tag t-cat">${escapeHtml(it.cert)}</span>` : ''}
+                ${it.due ? `<span class="tag t-date">到期 ${escapeHtml(it.due)}</span>` : ''}
+              </div>
+              ${it.finding ? `<div class="ci-finding">${highlight(it.finding, shipState.q)}</div>` : ''}
+              ${it.plan ? `<div class="ci-plan"><b>處理規劃：</b>${highlight(it.plan, shipState.q)}</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>` : '';
+
+    return `
+    <div class="card ${cardClsFinal}">
+      <div class="card-head" onclick="this.parentElement.classList.toggle('expanded')">
+        <div class="card-tags">
+          ${tType}
+          <span class="tag t-code">${escapeHtml(s.code)}</span>
+          <span class="tag ${badgeCls}">${badgeText}</span>
+        </div>
+        <div class="card-title">${highlight(s.cn_name + ' ' + s.en_name, shipState.q)}</div>
+        ${ddSummary}
+        ${ciSummary}
+      </div>
+      <div class="card-body">
+        ${s.class ? `<div class="field"><div class="label">船級</div><div class="value">${escapeHtml(s.class)}</div></div>` : ''}
+        ${s.owner ? `<div class="field"><div class="label">船東</div><div class="value">${escapeHtml(s.owner)}</div></div>` : ''}
+        ${s.pic_baoshan ? `<div class="field"><div class="label">保船 PIC</div><div class="value">${highlight(s.pic_baoshan, shipState.q)}</div></div>` : ''}
+        ${s.pic_caigou ? `<div class="field"><div class="label">採購 PIC</div><div class="value">${highlight(s.pic_caigou, shipState.q)}</div></div>` : ''}
+        ${s.pic_haiji ? `<div class="field"><div class="label">海技 PIC</div><div class="value">${highlight(s.pic_haiji, shipState.q)}</div></div>` : ''}
+        ${s.note ? `<div class="field"><div class="label">備註</div><div class="value">${escapeHtml(s.note)}</div></div>` : ''}
+        ${ddBlock}
+        ${ciBlock}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// === 事件 ===
+const eventState = { q: '', sevs: new Set(), statuses: new Set(), ship: '', sortDesc: true };
+function matchEvent(e) {
+  if (eventState.ship && e.code !== eventState.ship) return false;
+  if (eventState.sevs.size > 0 && !eventState.sevs.has(e.severity)) return false;
+  if (eventState.statuses.size > 0) {
+    const isClosed = e.status === '已解決' || e.status === '結案';
+    if (eventState.statuses.has('已結案') && !isClosed) return false;
+    if (eventState.statuses.has('開放中') && isClosed) return false;
+  }
+  if (eventState.q) {
+    const text = [e.code, e.ship, e.category, e.summary, e.action, e.note, e.owner, e.severity].join(' ').toLowerCase();
+    return eventState.q.toLowerCase().split(/\s+/).every(t => text.includes(t));
+  }
+  return true;
+}
+function renderEvents() {
+  const sorted = [...DATA.events].sort((a, b) => {
+    const aClosed = a.status === '已解決' || a.status === '結案';
+    const bClosed = b.status === '已解決' || b.status === '結案';
+    if (aClosed !== bClosed) return aClosed ? 1 : -1;
+    const cmp = (a.date || '').localeCompare(b.date || '');
+    return eventState.sortDesc ? -cmp : cmp;
+  });
+  const filtered = sorted.filter(matchEvent);
+  $('#eventCount').textContent = `${filtered.length} / ${DATA.events.length}`;
+  if (filtered.length === 0) {
+    $('#eventList').innerHTML = '<div class="empty"><div class="icon">⚠️</div>沒有符合的事件</div>';
+    return;
+  }
+  $('#eventList').innerHTML = filtered.map(e => {
+    const sevCls = e.severity.startsWith('S1') ? 's1' : e.severity.startsWith('S2') ? 's2' : '';
+    const sevTag = e.severity.startsWith('S1') ? 't-s1' : e.severity.startsWith('S2') ? 't-s2' : 't-s3';
+    const isClosed = e.status === '已解決' || e.status === '結案';
+    const statusCls = isClosed ? 't-status-closed' : (e.status === '待處理' ? 't-status-pending' : 't-status-active');
+    return `
+    <div class="card ${sevCls}">
+      <div class="card-head" onclick="this.parentElement.classList.toggle('expanded')">
+        <div class="card-tags">
+          ${e.severity ? `<span class="tag ${sevTag}">${escapeHtml(e.severity)}</span>` : ''}
+          <span class="tag t-code">${escapeHtml(e.code)}</span>
+          ${e.ship ? `<span class="tag t-cat">${escapeHtml(e.ship)}</span>` : ''}
+          ${e.category ? `<span class="tag t-cat">${escapeHtml(e.category)}</span>` : ''}
+          ${e.status ? `<span class="tag ${statusCls}">${escapeHtml(e.status)}</span>` : ''}
+          ${e.date ? `<span class="tag t-date">${escapeHtml(e.date)}</span>` : ''}
+        </div>
+        <div class="card-title">${highlight(e.summary || '(無摘要)', eventState.q)}</div>
+      </div>
+      <div class="card-body">
+        ${e.action ? `<div class="field"><div class="label">處理對策</div><div class="value">${highlight(e.action, eventState.q)}</div></div>` : ''}
+        ${e.owner ? `<div class="field"><div class="label">負責人</div><div class="value">${escapeHtml(e.owner)}</div></div>` : ''}
+        ${e.close_date ? `<div class="field"><div class="label">結案日期</div><div class="value">${escapeHtml(e.close_date)}</div></div>` : ''}
+        ${e.link ? `<div class="field"><div class="label">關聯</div><div class="value"><code>${escapeHtml(e.link)}</code></div></div>` : ''}
+        ${e.note ? `<div class="field"><div class="label">備註</div><div class="value">${escapeHtml(e.note)}</div></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// === 摘要 ===
+const summaryState = { q: '', sevs: new Set(), ship: '', sortDesc: true };
+function matchSummary(s) {
+  if (summaryState.ship && s.code !== summaryState.ship) return false;
+  if (summaryState.sevs.size > 0 && !summaryState.sevs.has(s.severity)) return false;
+  if (summaryState.q) {
+    const text = [s.code, s.ship, s.category, s.summary, s.follow, s.keywords, s.file, s.note].join(' ').toLowerCase();
+    return summaryState.q.toLowerCase().split(/\s+/).every(t => text.includes(t));
+  }
+  return true;
+}
+function renderSummaries() {
+  const sorted = [...DATA.summaries].sort((a, b) => {
+    const cmp = (a.date || '').localeCompare(b.date || '');
+    return summaryState.sortDesc ? -cmp : cmp;
+  });
+  const filtered = sorted.filter(matchSummary);
+  $('#summaryCount').textContent = `${filtered.length} / ${DATA.summaries.length}`;
+  if (filtered.length === 0) {
+    $('#summaryList').innerHTML = '<div class="empty"><div class="icon">📝</div>沒有符合的摘要</div>';
+    return;
+  }
+  $('#summaryList').innerHTML = filtered.map(s => {
+    const sevCls = s.severity.startsWith('S1') ? 's1' : s.severity.startsWith('S2') ? 's2' : '';
+    const sevTag = s.severity.startsWith('S1') ? 't-s1' : s.severity.startsWith('S2') ? 't-s2' : 't-s3';
+    return `
+    <div class="card ${sevCls}">
+      <div class="card-head" onclick="this.parentElement.classList.toggle('expanded')">
+        <div class="card-tags">
+          ${s.severity ? `<span class="tag ${sevTag}">${escapeHtml(s.severity)}</span>` : ''}
+          ${s.code ? `<span class="tag t-code">${escapeHtml(s.code)}</span>` : ''}
+          ${s.ship ? `<span class="tag t-cat">${escapeHtml(s.ship)}</span>` : ''}
+          ${s.category ? `<span class="tag t-cat">${escapeHtml(s.category)}</span>` : ''}
+          ${s.date ? `<span class="tag t-date">${escapeHtml(s.date)}</span>` : ''}
+        </div>
+        <div class="card-title">${highlight(s.summary.slice(0, 100) + (s.summary.length > 100 ? '...' : ''), summaryState.q)}</div>
+      </div>
+      <div class="card-body">
+        <div class="field"><div class="label">完整摘要</div><div class="value">${highlight(s.summary, summaryState.q)}</div></div>
+        ${s.follow ? `<div class="field"><div class="label">後續追蹤</div><div class="value">${highlight(s.follow, summaryState.q)}</div></div>` : ''}
+        ${s.keywords ? `<div class="field"><div class="label">關鍵字</div><div class="value">${highlight(s.keywords, summaryState.q)}</div></div>` : ''}
+        ${s.file ? `<div class="field"><div class="label">原始檔名</div><div class="value"><code>${escapeHtml(s.file)}</code></div></div>` : ''}
+        ${s.note ? `<div class="field"><div class="label">備註</div><div class="value">${escapeHtml(s.note)}</div></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// === 週報：本週各船狀況彙總 ===
+function _weekRange() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dow = today.getDay();
+  const offset = (dow === 0) ? 6 : (dow - 1);
+  const start = new Date(today); start.setDate(today.getDate() - offset);
+  const end = new Date(start); end.setDate(start.getDate() + 6);
+  const fmt = d => d.toISOString().slice(0,10);
+  // ISO week number
+  const tmp = new Date(today);
+  tmp.setHours(0,0,0,0);
+  tmp.setDate(tmp.getDate() + 4 - (tmp.getDay() || 7));
+  const yearStart = new Date(tmp.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+  return { start, end, today, weekNo, fmt };
+}
+
+function _inRange(dateStr, start, end) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return d >= start && d <= end;
+}
+
+function renderWeekly() {
+  const { start, end, today, weekNo, fmt } = _weekRange();
+  const startStr = fmt(start), endStr = fmt(end);
+
+  // === 為每艘船建立本週活動 bucket ===
+  const shipMap = {};
+  function bucket(code) {
+    if (!shipMap[code]) {
+      const ship = DATA.ships.find(s => s.code === code);
+      shipMap[code] = {
+        code: code,
+        cn_name: ship ? ship.cn_name : '',
+        en_name: ship ? ship.en_name : '',
+        type: ship ? ship.type : '',
+        newEvents: [], closedEvents: [],
+        summaries: [],
+        ddNew: [], ddOut: [], ddInDock: [],
+        classOverdue: [], class30: [],
+        payPending: [], billPending: [],
+      };
+    }
+    return shipMap[code];
+  }
+
+  // 事件
+  for (const e of DATA.events) {
+    if (_inRange(e.date, start, end)) bucket(e.code).newEvents.push(e);
+    if (e.close_date && _inRange(e.close_date, start, end)) bucket(e.code).closedEvents.push(e);
+  }
+  // 摘要
+  for (const s of DATA.summaries) {
+    if (s.code && _inRange(s.date, start, end)) bucket(s.code).summaries.push(s);
+  }
+  // 塢修
+  for (const ship of DATA.ships) {
+    for (const d of (ship.drydocks || [])) {
+      const inWk = _inRange(d.in_date, start, end);
+      const outWk = _inRange(d.out_date, start, end);
+      const inDock = d.in_date && d.out_date && (new Date(d.in_date) <= today && today <= new Date(d.out_date));
+      if (inWk) bucket(ship.code).ddNew.push(d);
+      if (outWk) bucket(ship.code).ddOut.push(d);
+      if (inDock) bucket(ship.code).ddInDock.push(d);
+      // 待付款 / 待出帳
+      if (d.out_date && new Date(d.out_date) < today) {
+        if (d.payment !== '完成') bucket(ship.code).payPending.push(d);
+        if (d.bill !== '完成') bucket(ship.code).billPending.push(d);
+      }
+    }
+    // CLASS
+    for (const ci of (ship.class_items || [])) {
+      if (ci.status === '逾期') bucket(ship.code).classOverdue.push(ci);
+      else if (ci.status === '30日內') bucket(ship.code).class30.push(ci);
+    }
+  }
+
+  const ships = Object.values(shipMap);
+
+  // 計算重要度權重
+  function weight(b) {
+    let w = 0;
+    w += b.newEvents.filter(e => e.severity.startsWith('S1')).length * 100;
+    w += b.newEvents.filter(e => e.severity.startsWith('S2')).length * 50;
+    w += b.classOverdue.length * 80;
+    w += b.ddInDock.length * 60;
+    w += b.payPending.length * 40;
+    w += b.class30.length * 25;
+    w += b.ddNew.length * 30;
+    w += b.ddOut.length * 30;
+    w += b.newEvents.length * 10;
+    w += b.closedEvents.length * 5;
+    w += b.summaries.length * 2;
+    return w;
+  }
+  ships.sort((a, b) => weight(b) - weight(a));
+
+  // === Hero 區 ===
+  $('#weeklyHero').innerHTML = `
+    <div class="hero-week">第 ${weekNo} 週</div>
+    <div class="hero-range">${startStr} ~ ${endStr}</div>
+    <div class="hero-active">${ships.length} 艘船本週有活動</div>
+  `;
+
+  // === 週彙總 KPI ===
+  const total = {
+    summaries: ships.reduce((a, b) => a + b.summaries.length, 0),
+    newEvents: ships.reduce((a, b) => a + b.newEvents.length, 0),
+    closedEvents: ships.reduce((a, b) => a + b.closedEvents.length, 0),
+    inDock: new Set(ships.filter(b => b.ddInDock.length > 0).map(b => b.code)).size,
+    overdueClass: ships.reduce((a, b) => a + b.classOverdue.length, 0),
+    payPending: ships.reduce((a, b) => a + b.payPending.length, 0),
+  };
+  $('#weeklyKpi').innerHTML = `
+    <div class="wk-kpi"><div class="wk-kpi-v">${total.summaries}</div><div class="wk-kpi-l">摘要</div></div>
+    <div class="wk-kpi"><div class="wk-kpi-v">${total.newEvents}</div><div class="wk-kpi-l">新增事件</div></div>
+    <div class="wk-kpi"><div class="wk-kpi-v">${total.closedEvents}</div><div class="wk-kpi-l">結案</div></div>
+    <div class="wk-kpi"><div class="wk-kpi-v">${total.inDock}</div><div class="wk-kpi-l">塢修中</div></div>
+    <div class="wk-kpi ${total.overdueClass > 0 ? 'danger' : ''}"><div class="wk-kpi-v">${total.overdueClass}</div><div class="wk-kpi-l">CLASS 逾期</div></div>
+    <div class="wk-kpi ${total.payPending > 0 ? 'warn' : ''}"><div class="wk-kpi-v">${total.payPending}</div><div class="wk-kpi-l">待出帳</div></div>
+  `;
+
+  // === 各船卡片 ===
+  $('#weeklyCount').textContent = `共 ${ships.length} 艘船本週有狀況`;
+  if (ships.length === 0) {
+    $('#weeklyShipList').innerHTML = '<div class="empty"><div class="icon">✓</div>本週所有船舶平靜無事</div>';
+  } else {
+    $('#weeklyShipList').innerHTML = ships.map(b => {
+      // 標籤列
+      const tags = [];
+      if (b.type) tags.push(`<span class="tag t-${b.type.toLowerCase()}">${b.type}</span>`);
+      tags.push(`<span class="tag t-code">${escapeHtml(b.code)}</span>`);
+      if (b.ddInDock.length > 0) tags.push(`<span class="tag t-dd-active">🔧 塢修中</span>`);
+      const s1 = b.newEvents.filter(e => e.severity.startsWith('S1')).length;
+      const s2 = b.newEvents.filter(e => e.severity.startsWith('S2')).length;
+      if (s1 > 0) tags.push(`<span class="tag t-s1">S1 × ${s1}</span>`);
+      if (s2 > 0) tags.push(`<span class="tag t-s2">S2 × ${s2}</span>`);
+      if (b.classOverdue.length > 0) tags.push(`<span class="tag t-dd-future-soon">⚠ CLASS 逾期 ${b.classOverdue.length}</span>`);
+      if (b.payPending.length > 0) tags.push(`<span class="tag" style="background:#fff3e0;color:#b65500;border:1px solid #ffd591;">💰 待出帳 ${b.payPending.length}</span>`);
+
+      // 狀況條目
+      const items = [];
+      // 塢修
+      if (b.ddInDock.length > 0) {
+        for (const d of b.ddInDock) {
+          const today2 = new Date();
+          const out = new Date(d.out_date);
+          const days = Math.ceil((out - today2) / (24*60*60*1000));
+          items.push(`<div class="wk-item wk-dock">🔧 <b>塢修中</b> @ ${escapeHtml(d.shipyard)} (${escapeHtml(d.in_date)} → ${escapeHtml(d.out_date)}, 距離廠 ${days} 天)　主修：${escapeHtml(d.primary)}</div>`);
+        }
+      }
+      if (b.ddOut.length > 0) {
+        for (const d of b.ddOut) {
+          items.push(`<div class="wk-item wk-out">✓ <b>本週離廠</b> ${escapeHtml(d.out_date)} @ ${escapeHtml(d.shipyard)}</div>`);
+        }
+      }
+      if (b.ddNew.length > 0) {
+        for (const d of b.ddNew) {
+          items.push(`<div class="wk-item wk-in">→ <b>本週進廠</b> ${escapeHtml(d.in_date)} @ ${escapeHtml(d.shipyard)}　主修：${escapeHtml(d.primary)}</div>`);
+        }
+      }
+      // CLASS 逾期
+      if (b.classOverdue.length > 0) {
+        for (const ci of b.classOverdue) {
+          items.push(`<div class="wk-item wk-overdue">⚠️ <b>CLASS 逾期</b> ${escapeHtml(ci.cls)} ${escapeHtml(ci.id || '')} (到期 ${escapeHtml(ci.due)})：${escapeHtml((ci.finding || '').slice(0,80))}</div>`);
+        }
+      }
+      // CLASS 30 日內
+      if (b.class30.length > 0) {
+        for (const ci of b.class30) {
+          items.push(`<div class="wk-item wk-class30">📅 <b>CLASS 30日內</b> ${escapeHtml(ci.cls)} (到期 ${escapeHtml(ci.due)})：${escapeHtml((ci.finding || '').slice(0,80))}</div>`);
+        }
+      }
+      // 新增事件
+      for (const e of b.newEvents) {
+        const sevBadge = e.severity.startsWith('S1') ? '🔴' : e.severity.startsWith('S2') ? '🟠' : '🔵';
+        items.push(`<div class="wk-item wk-event">${sevBadge} <b>${escapeHtml(e.severity)}</b>　${escapeHtml(e.date)}　${escapeHtml(e.category)}：${escapeHtml((e.summary || '').slice(0,90))}</div>`);
+      }
+      // 結案事件
+      for (const e of b.closedEvents) {
+        items.push(`<div class="wk-item wk-closed">✅ <b>結案</b>　${escapeHtml(e.close_date)}　${escapeHtml((e.summary || '').slice(0,90))}</div>`);
+      }
+      // 待出帳
+      if (b.payPending.length > 0) {
+        for (const d of b.payPending) {
+          items.push(`<div class="wk-item wk-pay">💰 <b>塢修帳尚未出帳</b>　離廠 ${escapeHtml(d.out_date)}　PO: ${escapeHtml(d.po)}　77P: ${escapeHtml(d.bill || '尚未')}</div>`);
+        }
+      }
+      // 摘要
+      if (b.summaries.length > 0) {
+        const sumLines = b.summaries.map(s =>
+          `<div class="wk-sub">📝 ${escapeHtml(s.date)}　[${escapeHtml(s.severity)}/${escapeHtml(s.category)}] ${escapeHtml((s.summary || '').slice(0, 100))}</div>`
+        ).join('');
+        items.push(`<details class="wk-item wk-summaries"><summary>📝 <b>本週摘要紀錄 (${b.summaries.length} 筆)</b> — 點擊展開</summary>${sumLines}</details>`);
+      }
+
+      const cls = (s1 > 0 || b.classOverdue.length > 0) ? 's1' :
+                  (s2 > 0 || b.payPending.length > 0) ? 's2' :
+                  (b.ddInDock.length > 0) ? 'dd-active' : '';
+
+      return `
+      <div class="card ${cls}">
+        <div class="card-head" onclick="this.parentElement.classList.toggle('expanded')">
+          <div class="card-tags">${tags.join('')}</div>
+          <div class="card-title">${escapeHtml(b.cn_name)} ${escapeHtml(b.en_name)}</div>
+          <div class="wk-meta">${items.length} 項本週活動 · 點擊展開明細</div>
+        </div>
+        <div class="card-body">
+          <div class="wk-list">${items.join('')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // === 歷史週報歸檔 ===
+  const arch = [...DATA.weekly].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (arch.length === 0) {
+    $('#weeklyArchive').innerHTML = '<div class="empty" style="padding:20px;color:#888;">尚無歸檔週報</div>';
+  } else {
+    $('#weeklyArchive').innerHTML = arch.map(w => `
+      <div class="card">
+        <div class="card-head" onclick="this.parentElement.classList.toggle('expanded')">
+          <div class="card-tags">
+            <span class="tag t-code">第 ${escapeHtml(w.no)} 號</span>
+            ${w.date ? `<span class="tag t-date">${escapeHtml(w.date)}</span>` : ''}
+          </div>
+          <div class="card-title">${escapeHtml(w.period || '')}</div>
+        </div>
+        <div class="card-body">
+          ${w.events ? `<div class="field"><div class="label">事件</div><div class="value">${escapeHtml(w.events)}</div></div>` : ''}
+          ${w.projects ? `<div class="field"><div class="label">塢修動態</div><div class="value">${escapeHtml(w.projects)}</div></div>` : ''}
+          ${w.maintenance ? `<div class="field"><div class="label">CLASS / 帳務</div><div class="value">${escapeHtml(w.maintenance)}</div></div>` : ''}
+          ${w.next_week ? `<div class="field"><div class="label">下週重點</div><div class="value">${escapeHtml(w.next_week)}</div></div>` : ''}
+          ${w.link ? `<div class="field"><div class="label">檔案</div><div class="value"><code>${escapeHtml(w.link)}</code></div></div>` : ''}
+          ${w.note ? `<div class="field"><div class="label">備註</div><div class="value">${escapeHtml(w.note)}</div></div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// 分頁切換
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('section.section').forEach(s => s.classList.add('hidden'));
+    $('#' + btn.dataset.tab).classList.remove('hidden');
+    window.scrollTo(0, 0);
+  });
+});
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+$('#searchShips').addEventListener('input', debounce(e => { shipState.q = e.target.value.trim(); renderShips(); }, 100));
+$('#searchEvents').addEventListener('input', debounce(e => { eventState.q = e.target.value.trim(); renderEvents(); }, 100));
+$('#searchSummaries').addEventListener('input', debounce(e => { summaryState.q = e.target.value.trim(); renderSummaries(); }, 100));
+
+document.querySelectorAll('#ships .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    if (chip.dataset.type) {
+      const t = chip.dataset.type;
+      if (shipState.types.has(t)) shipState.types.delete(t); else shipState.types.add(t);
+    } else if (chip.dataset.dd) {
+      const d = chip.dataset.dd;
+      if (shipState.ddStatuses.has(d)) shipState.ddStatuses.delete(d); else shipState.ddStatuses.add(d);
+    } else if (chip.dataset.ci) {
+      const c = chip.dataset.ci;
+      if (shipState.ciStatuses.has(c)) shipState.ciStatuses.delete(c); else shipState.ciStatuses.add(c);
+    } else if (chip.dataset.pay) {
+      const p = chip.dataset.pay;
+      if (shipState.payStatuses.has(p)) shipState.payStatuses.delete(p); else shipState.payStatuses.add(p);
+    }
+    chip.classList.toggle('active');
+    renderShips();
+  });
+});
+document.querySelectorAll('#events .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    if (chip.dataset.sev) {
+      const s = chip.dataset.sev;
+      if (eventState.sevs.has(s)) eventState.sevs.delete(s); else eventState.sevs.add(s);
+    } else if (chip.dataset.status) {
+      const s = chip.dataset.status;
+      if (eventState.statuses.has(s)) eventState.statuses.delete(s); else eventState.statuses.add(s);
+    }
+    chip.classList.toggle('active');
+    renderEvents();
+  });
+});
+document.querySelectorAll('#summaries .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const s = chip.dataset.sev;
+    if (summaryState.sevs.has(s)) summaryState.sevs.delete(s); else summaryState.sevs.add(s);
+    chip.classList.toggle('active');
+    renderSummaries();
+  });
+});
+
+// 排序切換按鈕
+$('#sortEvents').addEventListener('click', () => {
+  eventState.sortDesc = !eventState.sortDesc;
+  $('#sortEvents').textContent = eventState.sortDesc ? '📅 新→舊' : '📅 舊→新';
+  $('#sortEvents').classList.toggle('active', !eventState.sortDesc);
+  renderEvents();
+});
+$('#sortSummaries').addEventListener('click', () => {
+  summaryState.sortDesc = !summaryState.sortDesc;
+  $('#sortSummaries').textContent = summaryState.sortDesc ? '📅 新→舊' : '📅 舊→新';
+  $('#sortSummaries').classList.toggle('active', !summaryState.sortDesc);
+  renderSummaries();
+});
+
+// 動態填充船舶下拉
+function fillShipSelect(selector, source) {
+  const codes = [...new Set(source.map(x => x.code).filter(Boolean))];
+  const codeToName = {};
+  DATA.ships.forEach(s => { codeToName[s.code] = s.cn_name; });
+  codes.sort();
+  const sel = $(selector);
+  for (const c of codes) {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = `${c} ${codeToName[c] || ''}`;
+    sel.appendChild(opt);
+  }
+}
+fillShipSelect('#shipSelectEvents', DATA.events);
+fillShipSelect('#shipSelectSummaries', DATA.summaries);
+
+$('#shipSelectEvents').addEventListener('change', e => {
+  eventState.ship = e.target.value;
+  renderEvents();
+});
+$('#shipSelectSummaries').addEventListener('change', e => {
+  summaryState.ship = e.target.value;
+  renderSummaries();
+});
+
+// 初始渲染
+renderDashboard();
+renderShips();
+renderEvents();
+renderSummaries();
+renderWeekly();
+</script>
+</body>
+</html>
